@@ -130,7 +130,7 @@ Optional, short (< 70 characters) group of the package.
 
 #### Summary
 
-Short (< 70 characters) summary of the package.  
+Short (< 70 characters) summary of the package.
 ```
 	Summary: Utility for converting mumbles into giggles
 ```
@@ -210,7 +210,7 @@ Do not use in new packages.
 #### AutoReq
 #### AutoProv
 
-Control per-package automatic dependency generation for provides and requires. 
+Control per-package automatic dependency generation for provides and requires.
 Accepted values are 1/0 or yes/no, default is always "yes". Autoreqprov is
 equal to specifying Autoreq and Autoprov separately.
 
@@ -222,13 +222,13 @@ multiple values accepted, a single value is of the form
 `capability [operator version]`. Capability names must
 start with alphanumerics or underscore. Optional version range can be
 supplied after capability name, accepted operators are `=`, `<`, `>`,
-`<=` and `>=`, version 
+`<=` and `>=`, version
 
 #### Requires
 
 Capabilities this package requires to function at all. Besides ensuring
 required packages get installed, this is also used to order installs
-and erasures. 
+and erasures.
 
 Additional context can be supplied using `Requires(qualifier)` syntax,
 accepted qualifiers are:
@@ -431,7 +431,7 @@ level.
 
 Used for creating sub-packages with conflicting files, such as different
 variants of the same content (eg minimal and full versions of the same
-software). 
+software).
 
 ### Sub-sections
 
@@ -533,13 +533,13 @@ passed down to the `patch` command.
 -F N        maximum fuzz factor (on context patches)
 -p N        strip N leading slashes from paths
 -R          assume reversed patch
--o FILE     send output to FILE instead of patching in place 
+-o FILE     send output to FILE instead of patching in place
 -z SUF      same as -b
 -Z          set mtime and atime from context diff headers using UTC
 
 -P N        apply patch number N, same as passing N as a positional argument
 ```
- 
+
 ### %generate_buildrequires (since rpm >= 4.15)
 
 This optional script can be used to determine `BuildRequires`
@@ -720,7 +720,7 @@ space is tight.
 
 #### %license (since rpm >= 4.11)
 
-Used to mark and/or install files as licenses. Same as %doc, but 
+Used to mark and/or install files as licenses. Same as %doc, but
 cannot be filtered out as licenses must always be present in packages.
 
 #### %readme
