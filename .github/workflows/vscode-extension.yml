@@ -1,0 +1,46 @@
+---
+name: build the vscode extension
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3.6.0
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        shell: bash
+        run: echo "dir=$(npm config get cache)" >> ${GITHUB_OUTPUT}
+
+      - uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            -node-
+
+      - run: npm install
+      - run: npm run package
+
+      - uses: actions/upload-artifact@v3
+        if: ${{ matrix.node-version == '18.x' }}
+        with:
+          name: rpm-spec-language-server.vsix
+          path: rpm-spec-language-server-*.vsix
