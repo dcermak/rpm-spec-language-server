@@ -1,0 +1,4 @@
+/dist/
+/node_modules/
+/clients/vscode/out/
+/rpm-spec-language-server-*.vsix

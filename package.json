@@ -1,0 +1,47 @@
+{
+  "name": "rpm-spec-language-server",
+  "version": "0.0.1",
+  "description": "RPM Spec File Language Server Client",
+  "main": "./clients/vscode/out/extension",
+  "repository": "https://github.com/dcermak/rpm-spec-language-server",
+  "author": "Dan Čermák <dcermak@suse.com>",
+  "license": "GPL-2.0-or-later",
+  "categories": [
+    "Other"
+  ],
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "activationEvents": [
+    "onLanguage:rpmspec"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "rpmspec",
+        "aliases": [
+          "spec",
+          "RPM Spec"
+        ],
+        "extensions": [
+          ".spec"
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "tsc -p ./",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8",
+    "@types/vscode": "^1.1.37",
+    "@vscode/vsce": "^2",
+    "typescript": "^5.2"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9"
+  }
+}
