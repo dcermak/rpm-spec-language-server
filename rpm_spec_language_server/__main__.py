@@ -1,5 +1,8 @@
+import logging
 from rpm_spec_language_server.server import create_rpm_lang_server
 
+logging.basicConfig(format='%(levelname)s:%(funcName)s:%(message)s',
+                    level=logging.DEBUG)
 
 def main() -> None:
     import argparse
@@ -21,3 +24,5 @@ def main() -> None:
         server.start_tcp(args.host, args.port)
     else:
         server.start_io()
+
+main()

@@ -1,3 +1,5 @@
+*.pyc
+*~
 /dist/
 /node_modules/
 /clients/vscode/out/

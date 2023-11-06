@@ -13,7 +13,7 @@ Running the server
 
 - Install the dependencies via :command:`poetry install`
 - Launch the server in tcp mode (binds to ``127.0.0.1:2087`` by default) via
-  :command:`poetry run server --tcp`
+  :command:`python3 -mrpm_spec_language_server --tcp`
 
 
 Clients
@@ -34,3 +34,18 @@ requires nodejs and the :command:`npm` package manager:
 
 Install the created :file:`rpm-spec-language-server-$VERSION.vsix` and launch
 the language server in tcp mode.
+
+vis with [vis-lspci](https://gitlab.com/muhq/vis-lspc)
+------------------------------------------------------
+
+Add to your `~/.config/vis/visrc.lua` this code:
+
+.. code-block:: lua
+
+    lsp = require('plugins/vis-lspc')
+    lsp.logging = true
+    lsp.highlight_diagnostics = true
+    lsp.ls_map['rpmspec'] = {
+        name = 'RPMSpec',
+        cmd = 'python3 -mrpm_spec_language_server --tcp'
+    }
