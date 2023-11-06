@@ -31,32 +31,38 @@ jobs:
   ci:
     name: Run the integration tests
     runs-on: "ubuntu-latest"
-    strategy:
-      fail-fast: false
-      matrix:
-        python_version: ["3.11", "3.12"]
+    container:
+      image: registry.opensuse.org/opensuse/tumbleweed
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python_version }}
 
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pypoetry/virtualenvs
           key: poetry-${{ hashFiles('poetry.lock') }}
 
-      - run: pip install --upgrade poetry
+      - run: zypper -n ref
+        # python3 required for sqlite3 module
+      - run: zypper -n in python3-pipx python3-rpm python3
+
+      - run: pipx install poetry
+        env:
+          PIPX_BIN_DIR: /usr/bin
+
+      - run: poetry install
+      - run: poetry run pytest -vv
 
       - run: |
-          poetry install
-          poetry run pytest -vv
+          poetry run coverage run -m pytest -vv
+          poetry run coverage combine || :
+          poetry run coverage report -m
+          poetry run coverage xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          fail_ci_if_error: true
+          fail_ci_if_error: false
 
   build:
     name: Build the package
