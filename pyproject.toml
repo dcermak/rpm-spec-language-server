@@ -17,6 +17,10 @@ pytest = ">=7.3"
 black = ">=23.3"
 mypy = ">=1.3"
 Sphinx = ">=7"
+coverage = ">=7.3"
+
+[tool.poetry.scripts]
+server = "rpm_spec_language_server.main:main"
 
 [build-system]
 requires = ["poetry-core"]
