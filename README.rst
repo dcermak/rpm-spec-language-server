@@ -8,6 +8,14 @@ Requirements
 - `poetry <https://python-poetry.org/>`_
 
 
+Running the server
+------------------
+
+- Install the dependencies via :command:`poetry install`
+- Launch the server in tcp mode (binds to ``127.0.0.1:2087`` by default) via
+  :command:`poetry run server --tcp`
+
+
 Clients
 =======
 
