@@ -154,9 +154,9 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
                     start := position_from_match(define_match),
                     Position(
                         line=start.line,
-                        character=start.character
-                        + define_match.start()
-                        - define_match.end(),
+                        character=(
+                            start.character + define_match.end() - define_match.start()
+                        ),
                     ),
                 ),
             )
