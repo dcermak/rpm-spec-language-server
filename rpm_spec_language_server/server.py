@@ -1,11 +1,13 @@
 import rpm
 import re
 from urllib.parse import urlparse
+from specfile.exceptions import RPMException
 from specfile.macros import MacroLevel, Macros
 from lsprotocol.types import (
     TEXT_DOCUMENT_COMPLETION,
     TEXT_DOCUMENT_DEFINITION,
     TEXT_DOCUMENT_DOCUMENT_SYMBOL,
+    TEXT_DOCUMENT_HOVER,
     CompletionItem,
     CompletionList,
     CompletionOptions,
@@ -13,6 +15,8 @@ from lsprotocol.types import (
     DefinitionParams,
     DocumentSymbol,
     DocumentSymbolParams,
+    Hover,
+    HoverParams,
     Location,
     LocationLink,
     Position,
@@ -145,5 +149,16 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             )
 
         return None
+
+    @rpm_spec_server.feature(TEXT_DOCUMENT_HOVER)
+    def expand_macro(params: HoverParams) -> Hover | None:
+        macro = get_macro_under_cursor(params.text_document, params.position)
+        if not macro:
+            return None
+
+        try:
+            return Hover(contents=Macros.expand(macro.body))
+        except RPMException:
+            return Hover(contents=macro.body)
 
     return rpm_spec_server
