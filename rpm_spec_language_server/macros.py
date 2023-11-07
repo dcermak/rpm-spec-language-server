@@ -1,3 +1,10 @@
+from urllib.parse import urlparse
+
+from lsprotocol.types import Position, TextDocumentIdentifier
+from specfile.macros import Macro, Macros
+from specfile.specfile import Specfile
+
+
 def get_macro_string_at_position(line: str, character: int) -> str | None:
     """Return the macro at the character position ``character`` from the line
     ``line`` and return it.
@@ -35,3 +42,27 @@ def get_macro_string_at_position(line: str, character: int) -> str | None:
             break
 
     return line[start_of_macro:end_of_macro]
+
+
+def get_macro_under_cursor(
+    text_document: TextDocumentIdentifier,
+    position: Position,
+    macros_dump: list[Macro] | None = None,
+) -> Macro | None:
+    url = urlparse(text_document.uri)
+
+    if url.scheme != "file" or not url.path.endswith(".spec"):
+        return None
+
+    spec = Specfile(url.path)
+
+    with spec.lines() as lines:
+        symbol = get_macro_string_at_position(lines[position.line], position.character)
+        if not symbol:
+            return None
+
+        for macro in macros_dump if macros_dump is not None else Macros.dump():
+            if macro.name == symbol:
+                return macro
+
+    return None

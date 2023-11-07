@@ -1,11 +1,13 @@
 import rpm
 import re
 from urllib.parse import urlparse
+from specfile.exceptions import RPMException
 from specfile.macros import MacroLevel, Macros
 from lsprotocol.types import (
     TEXT_DOCUMENT_COMPLETION,
     TEXT_DOCUMENT_DEFINITION,
     TEXT_DOCUMENT_DOCUMENT_SYMBOL,
+    TEXT_DOCUMENT_HOVER,
     CompletionItem,
     CompletionList,
     CompletionOptions,
@@ -13,6 +15,8 @@ from lsprotocol.types import (
     DefinitionParams,
     DocumentSymbol,
     DocumentSymbolParams,
+    Hover,
+    HoverParams,
     Location,
     LocationLink,
     Position,
@@ -20,10 +24,9 @@ from lsprotocol.types import (
     SymbolInformation,
 )
 from pygls.server import LanguageServer
-from specfile.specfile import Specfile
 
 from rpm_spec_language_server.document_symbols import spec_to_document_symbols
-from rpm_spec_language_server.macros import get_macro_string_at_position
+from rpm_spec_language_server.macros import get_macro_under_cursor
 from rpm_spec_language_server.util import position_from_match
 
 
@@ -60,25 +63,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
     def find_macro_definition(
         param: DefinitionParams,
     ) -> Location | list[Location] | list[LocationLink] | None:
-        url = urlparse(param.text_document.uri)
-
-        if url.scheme != "file" or not url.path.endswith(".spec"):
-            return None
-
-        spec = Specfile(url.path)
-
-        macro_under_cursor = None
-        with spec.lines() as lines:
-            symbol = get_macro_string_at_position(
-                lines[param.position.line], param.position.character
-            )
-            if not symbol:
-                return None
-
-            for macro in Macros.dump():
-                if macro.name == symbol:
-                    macro_under_cursor = macro
-                    break
+        macro_under_cursor = get_macro_under_cursor(param.text_document, param.position)
 
         if not macro_under_cursor:
             return None
@@ -109,8 +94,10 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
 
         # macro is defined in the spec file
         if macro_under_cursor.level == MacroLevel.GLOBAL:
-            if not (define_match := find_macro_define_in_spec(str(spec))):
-                return None
+            with open(urlparse(param.text_document.uri).path) as spec:
+                if not (define_match := find_macro_define_in_spec(spec.read(-1))):
+                    return None
+
             file_uri = param.text_document.uri
 
         # the macro comes from a macro file
@@ -162,5 +149,16 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             )
 
         return None
+
+    @rpm_spec_server.feature(TEXT_DOCUMENT_HOVER)
+    def expand_macro(params: HoverParams) -> Hover | None:
+        macro = get_macro_under_cursor(params.text_document, params.position)
+        if not macro:
+            return None
+
+        try:
+            return Hover(contents=Macros.expand(macro.body))
+        except RPMException:
+            return Hover(contents=macro.body)
 
     return rpm_spec_server
