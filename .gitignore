@@ -2,3 +2,5 @@
 /node_modules/
 /clients/vscode/out/
 /rpm-spec-language-server-*.vsix
+/coverage.xml
+/.coverage
