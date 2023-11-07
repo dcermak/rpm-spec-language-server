@@ -20,7 +20,7 @@ Sphinx = ">=7"
 coverage = ">=7.3"
 
 [tool.poetry.scripts]
-server = "rpm_spec_language_server.main:main"
+rpm_lsp_server = "rpm_spec_language_server.main:main"
 
 [build-system]
 requires = ["poetry-core"]
