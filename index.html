@@ -45,7 +45,7 @@
 <ul class="simple">
 <li><p>Install the dependencies via <strong class="command">poetry install</strong></p></li>
 <li><p>Launch the server in tcp mode (binds to <code class="docutils literal notranslate"><span class="pre">127.0.0.1:2087</span></code> by default) via
-<strong class="command">poetry run server --tcp</strong></p></li>
+<strong class="command">python3 -mrpm_spec_language_server --tcp</strong></p></li>
 </ul>
 </section>
 </section>
@@ -61,6 +61,19 @@ requires nodejs and the <strong class="command">npm</strong> package manager:</p
 </div>
 <p>Install the created <code class="file docutils literal notranslate"><span class="pre">rpm-spec-language-server-$VERSION.vsix</span></code> and launch
 the language server in tcp mode.</p>
+</section>
+<section id="vis-with-vis-lspci-https-gitlab-com-muhq-vis-lspc">
+<h2>vis with [vis-lspci](<a class="reference external" href="https://gitlab.com/muhq/vis-lspc">https://gitlab.com/muhq/vis-lspc</a>)<a class="headerlink" href="#vis-with-vis-lspci-https-gitlab-com-muhq-vis-lspc" title="Link to this heading">¶</a></h2>
+<p>Add to your <cite>~/.config/vis/visrc.lua</cite> this code:</p>
+<div class="highlight-lua notranslate"><div class="highlight"><pre><span></span><span class="n">lsp</span> <span class="o">=</span> <span class="nb">require</span><span class="p">(</span><span class="s1">&#39;plugins/vis-lspc&#39;</span><span class="p">)</span>
+<span class="n">lsp</span><span class="p">.</span><span class="n">logging</span> <span class="o">=</span> <span class="kc">true</span>
+<span class="n">lsp</span><span class="p">.</span><span class="n">highlight_diagnostics</span> <span class="o">=</span> <span class="kc">true</span>
+<span class="n">lsp</span><span class="p">.</span><span class="n">ls_map</span><span class="p">[</span><span class="s1">&#39;rpmspec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;RPMSpec&#39;</span><span class="p">,</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;python3 -mrpm_spec_language_server --tcp&#39;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 </section>
 </section>
 <section id="indices-and-tables">
