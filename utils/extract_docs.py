@@ -66,11 +66,30 @@ def get_build_scriptlets_keywords(chunk):
             })
             keywords.append(str.split(line.translate(transtable).strip())[0])
 
-    for k in keywords:
-        print(k)
+    return keywords
 
 def get_build_scriptlets_doc(keyword, chunk):
-    pass
+    entered_doc = False
+    doc = ''
+    for line in chunk:
+        if (
+            (not entered_doc) and (keyword in line) and
+            ((line.startswith('###') or line.startswith(' * `%')) and ('%' in line))
+        ):
+
+            entered_doc = True
+            continue
+        if (
+            (entered_doc) and
+            (line.startswith('###') or line.startswith(' * `%'))
+        ):
+            entered_doc = False
+            break
+        
+        if entered_doc:
+            doc += line
+
+    return(doc.strip())
 
 document = []
 
@@ -85,10 +104,11 @@ preamble, dependencies, build_scriptlets = split_document(document)
 
 preamble_keywords = get_preamble_or_dependencies_keywords(preamble)
 dependencies_keywords = get_preamble_or_dependencies_keywords(dependencies)
-#build_scriptlets_keywords = get_build_scriptlets_keywords(build_scriptlets)
+build_scriptlets_keywords = get_build_scriptlets_keywords(build_scriptlets)
 
 preamble_data = []
 dependencies_data = []
+build_scriptlets_data = []
 
 for keyword in preamble_keywords:
     preamble_data.append((keyword, get_preamble_or_dependencies_doc(keyword, preamble)))
@@ -96,7 +116,10 @@ for keyword in preamble_keywords:
 for keyword in dependencies_keywords:
     dependencies_data.append((keyword, get_preamble_or_dependencies_doc(keyword, dependencies)))
 
-autocomplete_data = preamble_data + dependencies_data
+for keyword in build_scriptlets_keywords:
+    build_scriptlets_data.append((keyword, get_build_scriptlets_doc(keyword, build_scriptlets)))
+
+autocomplete_data = preamble_data + dependencies_data + build_scriptlets_data
 
 print('Writing autocomplete data to autocomplete_data.json')
 with open('./autocomplete_data.json', 'w') as adata:

@@ -18,6 +18,24 @@ A local copy of the `source markdown for the specfile manual page
 <https://github.com/rpm-software-management/rpm/blob/master/docs/manual/spec.md>`
 which is used to generate detailed help as LSP documentation entries.
 
+triggers.md
+----------- 
+The specfile man page references `this additional manual page
+<https://raw.githubusercontent.com/rpm-software-management/rpm/master/docs/manual/triggers.md>`
+which we need for trigger details.
+
+file_triggers.md
+---------------- 
+Another manual page from `here
+<https://raw.githubusercontent.com/rpm-software-management/rpm/master/docs/manual/file_triggers.md>`
+which covers the file triggers.
+
+autosetup.md
+------------ 
+Documentation for the ``%autosetup`` and ``%autopatch`` scriptlets taken from
+`this manual page
+<https://raw.githubusercontent.com/rpm-software-management/rpm/master/docs/manual/autosetup.md>`.
+
 autocomplete_data.json
 ---------------------
 A simple array of tuples pairing keywords with their original documentation
