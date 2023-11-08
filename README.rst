@@ -53,13 +53,10 @@ Add to your `~/.config/vis/visrc.lua` this code:
 .. code-block:: lua
 
     lsp = require('plugins/vis-lspc')
-    lsp.logging = true
-    lsp.highlight_diagnostics = true
     lsp.ls_map['rpmspec'] = {
         name = 'RPMSpec',
-        cmd = 'python3 -mrpm_spec_language_server'
+        cmd = 'python3 -mrpm_spec_language_server --stdio'
     }
-
 
 Neovim with built-in LSP client
 -------------------------------
@@ -70,12 +67,19 @@ Neovim with built-in LSP client
 
     require('lspconfig.configs').rpmspec = {
         default_config = {
-            cmd = {'rpm_lsp_server', '--verbose',
-                   '--log_file', vim.fn.stdpath('state') .. '/rpm_spec_lsp-log.txt'},
-            filetypes = {'spec'},
-            single_file_support = true,
-            settings = {},
-        }
+          cmd = { 'python3', '-mrpm_lsp_server', '--stdio' },
+          filetypes = { 'spec' },
+          single_file_support = true,
+          root_dir = util.find_git_ancestor,
+          settings = {},
+        },
+        docs = {
+          description = [[
+      https://github.com/dcermak/rpm-spec-language-server
+
+      Language server protocol (LSP) support for RPM Spec files.
+      ]],
+        },
     }
 
     nvim_lsp['rpmspec'].setup({})
