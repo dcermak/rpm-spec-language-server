@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "rpm-spec-language-server"
+name = "rpm_spec_language_server"
 version = "0.0.1"
 description = "Language Server for RPM spec files"
 authors = ["Dan Čermák <dcermak@suse.com>"]
