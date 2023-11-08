@@ -23,7 +23,7 @@ def main() -> None:
     )
     parser.add_argument("--log_file", type=str, help="File to log in", nargs=1)
     parser.add_argument(
-        "--stdout", action="store_true", help="Use stdio instead of the TCP server"
+        "--stdio", action="store_true", help="Use stdio instead of the TCP server"
     )
     parser.add_argument(
         "--host", type=str, default="127.0.0.1", help="Bind to this address"
@@ -42,7 +42,7 @@ def main() -> None:
 
     server = create_rpm_lang_server()
 
-    if args.stdout:
+    if args.stdio:
         server.start_io()
     else:
         server.start_tcp(args.host, args.port)
