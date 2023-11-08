@@ -10,7 +10,7 @@
     "Other"
   ],
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": ">=1.75.0"
   },
   "activationEvents": [
     "onLanguage:rpmspec"
@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.9",
-    "@types/vscode": "^1.1.37",
+    "@types/vscode": ">=1.75",
     "@vscode/vsce": "^2",
     "typescript": "^5.2"
   },
