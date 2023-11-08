@@ -45,8 +45,15 @@
 <ul class="simple">
 <li><p>Install the dependencies via <strong class="command">poetry install</strong></p></li>
 <li><p>Launch the server in tcp mode (binds to <code class="docutils literal notranslate"><span class="pre">127.0.0.1:2087</span></code> by default) via
-<strong class="command">python3 -mrpm_spec_language_server --tcp</strong></p></li>
+<strong class="command">poetry run rpm_lsp_server</strong></p></li>
 </ul>
+<p>Alternatively, you can build the python package, install the wheel and run the
+module directly:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="go">poetry build</span>
+<span class="go">pip install --user dist/rpm_spec_language_server-*.whl</span>
+<span class="go">python -m rpm_spec_language_server</span>
+</pre></div>
+</div>
 </section>
 </section>
 <section id="clients">
@@ -62,15 +69,15 @@ requires nodejs and the <strong class="command">npm</strong> package manager:</p
 <p>Install the created <code class="file docutils literal notranslate"><span class="pre">rpm-spec-language-server-$VERSION.vsix</span></code> and launch
 the language server in tcp mode.</p>
 </section>
-<section id="vis-with-vis-lspci-https-gitlab-com-muhq-vis-lspc">
-<h2>vis with [vis-lspci](<a class="reference external" href="https://gitlab.com/muhq/vis-lspc">https://gitlab.com/muhq/vis-lspc</a>)<a class="headerlink" href="#vis-with-vis-lspci-https-gitlab-com-muhq-vis-lspc" title="Link to this heading">¶</a></h2>
+<section id="vis-with-vis-lspci">
+<h2>vis with <a class="reference external" href="https://gitlab.com/muhq/vis-lspc">vis-lspci</a><a class="headerlink" href="#vis-with-vis-lspci" title="Link to this heading">¶</a></h2>
 <p>Add to your <cite>~/.config/vis/visrc.lua</cite> this code:</p>
 <div class="highlight-lua notranslate"><div class="highlight"><pre><span></span><span class="n">lsp</span> <span class="o">=</span> <span class="nb">require</span><span class="p">(</span><span class="s1">&#39;plugins/vis-lspc&#39;</span><span class="p">)</span>
 <span class="n">lsp</span><span class="p">.</span><span class="n">logging</span> <span class="o">=</span> <span class="kc">true</span>
 <span class="n">lsp</span><span class="p">.</span><span class="n">highlight_diagnostics</span> <span class="o">=</span> <span class="kc">true</span>
 <span class="n">lsp</span><span class="p">.</span><span class="n">ls_map</span><span class="p">[</span><span class="s1">&#39;rpmspec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
     <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;RPMSpec&#39;</span><span class="p">,</span>
-    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;python3 -mrpm_spec_language_server --tcp&#39;</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;python3 -mrpm_spec_language_server&#39;</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -82,8 +89,7 @@ the language server in tcp mode.</p>
 <span class="nb">require</span><span class="p">(</span><span class="s1">&#39;lspconfig.configs&#39;</span><span class="p">).</span><span class="n">rpmspec</span> <span class="o">=</span> <span class="p">{</span>
     <span class="n">default_config</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">cmd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;rpm_lsp_server&#39;</span><span class="p">,</span> <span class="s1">&#39;--verbose&#39;</span><span class="p">,</span>
-               <span class="s1">&#39;--log_file&#39;</span><span class="p">,</span> <span class="n">vim</span><span class="p">.</span><span class="n">fn</span><span class="p">.</span><span class="n">stdpath</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">)</span> <span class="o">..</span> <span class="s1">&#39;/rpm_spec_lsp-log.txt&#39;</span><span class="p">,</span>
-               <span class="s1">&#39;--tcp&#39;</span><span class="p">},</span>
+               <span class="s1">&#39;--log_file&#39;</span><span class="p">,</span> <span class="n">vim</span><span class="p">.</span><span class="n">fn</span><span class="p">.</span><span class="n">stdpath</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">)</span> <span class="o">..</span> <span class="s1">&#39;/rpm_spec_lsp-log.txt&#39;</span><span class="p">},</span>
         <span class="n">filetypes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;spec&#39;</span><span class="p">},</span>
         <span class="n">single_file_support</span> <span class="o">=</span> <span class="kc">true</span><span class="p">,</span>
         <span class="n">settings</span> <span class="o">=</span> <span class="p">{},</span>
