@@ -43,9 +43,9 @@
 <section id="running-the-server">
 <h2>Running the server<a class="headerlink" href="#running-the-server" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p>Install the dependencies via <strong class="command">poetry install</strong></p></li>
-<li><p>Launch the server in tcp mode (binds to <code class="docutils literal notranslate"><span class="pre">127.0.0.1:2087</span></code> by default) via
-<strong class="command">poetry run rpm_lsp_server</strong></p></li>
+<li><p>Install the dependencies via <code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">install</span></code></p></li>
+<li><p>Launch the server in tcp mode (binds to <code class="docutils literal notranslate"><span class="pre">`127.0.0.1:2087</span></code> by default) via
+<code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">run</span> <span class="pre">rpm_lsp_server</span></code></p></li>
 </ul>
 <p>Alternatively, you can build the python package, install the wheel and run the
 module directly:</p>
@@ -61,12 +61,12 @@ module directly:</p>
 <section id="vscode">
 <h2>VSCode<a class="headerlink" href="#vscode" title="Link to this heading">¶</a></h2>
 <p>A very simple VSCode client is available in <code class="docutils literal notranslate"><span class="pre">clients/vscode/</span></code>. Building
-requires nodejs and the <strong class="command">npm</strong> package manager:</p>
+requires nodejs and the <code class="docutils literal notranslate"><span class="pre">npm</span></code> package manager:</p>
 <div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>npm<span class="w"> </span>install
 <span class="gp">$ </span>npm<span class="w"> </span>run<span class="w"> </span>package
 </pre></div>
 </div>
-<p>Install the created <code class="file docutils literal notranslate"><span class="pre">rpm-spec-language-server-$VERSION.vsix</span></code> and launch
+<p>Install the created <code class="docutils literal notranslate"><span class="pre">rpm-spec-language-server-$VERSION.vsix</span></code> and launch
 the language server in tcp mode.</p>
 </section>
 <section id="vis-with-vis-lspci">
@@ -158,7 +158,7 @@ the language server in tcp mode.</p>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2023, Dan Čermák, Matěj Čepl, Jehan Singh.
+      &copy;2023, Dan Čermák, Matěj Cepl, Jehan Singh.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
