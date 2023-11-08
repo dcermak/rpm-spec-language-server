@@ -36,7 +36,7 @@ def main() -> None:
 
     if args.log_file:
         log.removeHandler(log.handlers[0])
-        log.addHandler(logging.FileHandler(args.log_file))
+        log.addHandler(logging.FileHandler(args.log_file[0]))
 
     log.setLevel(log_level)
 
