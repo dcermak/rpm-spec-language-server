@@ -26,6 +26,10 @@ from lsprotocol.types import (
 from pygls.server import LanguageServer
 
 from rpm_spec_language_server.document_symbols import spec_to_document_symbols
+from rpm_spec_language_server.extract_docs import (
+    create_autocompletion_documentation_from_spec_md,
+    spec_md_from_rpm_db,
+)
 from rpm_spec_language_server.macros import get_macro_under_cursor
 from rpm_spec_language_server.util import position_from_match
 
@@ -39,13 +43,21 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
 
     _MACROS = Macros.dump()
 
+    auto_complete_data = create_autocompletion_documentation_from_spec_md(
+        spec_md_from_rpm_db() or ""
+    )
+
     @rpm_spec_server.feature(
         TEXT_DOCUMENT_COMPLETION, CompletionOptions(trigger_characters=["%"])
     )
     def complete_macro_name(params: CompletionParams | None) -> CompletionList:
         return CompletionList(
             is_incomplete=False,
-            items=[CompletionItem(label=macro.name) for macro in _MACROS],
+            items=[
+                CompletionItem(label=key[1:], documentation=value)
+                for key, value in auto_complete_data.scriptlets.items()
+            ]
+            + [CompletionItem(label=macro.name) for macro in _MACROS],
         )
 
     @rpm_spec_server.feature(TEXT_DOCUMENT_DOCUMENT_SYMBOL)
