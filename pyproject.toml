@@ -2,7 +2,11 @@
 name = "rpm_spec_language_server"
 version = "0.0.1"
 description = "Language Server for RPM spec files"
-authors = ["Dan Čermák <dcermak@suse.com>"]
+authors = [
+    "Dan Čermák <dcermak@suse.com>",
+    "Jehan Singh <jehan.singh@suse.com>",
+    "Matěj Cepl <mcepl@cepl.eu>"
+]
 license = "GPL-2.0-or-later"
 readme = "README.rst"
 packages = [{include = "rpm_spec_language_server"}]
