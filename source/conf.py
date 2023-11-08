@@ -7,8 +7,9 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "RPM Spec Language Server"
-copyright = "2023, Dan Čermák, Matěj Čepl, Jehan Singh"
-author = "Dan Čermák, Matěj Čepl, Jehan Singh"
+author = "Dan Čermák, Matěj Cepl, Jehan Singh"
+copyright = f"2023, {author}"
+
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

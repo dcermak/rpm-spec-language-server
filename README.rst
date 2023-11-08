@@ -11,9 +11,9 @@ Requirements
 Running the server
 ------------------
 
-- Install the dependencies via :command:`poetry install`
-- Launch the server in tcp mode (binds to ``127.0.0.1:2087`` by default) via
-  :command:`poetry run rpm_lsp_server`
+- Install the dependencies via ``poetry install``
+- Launch the server in tcp mode (binds to ```127.0.0.1:2087`` by default) via
+  ``poetry run rpm_lsp_server``
 
 Alternatively, you can build the python package, install the wheel and run the
 module directly:
@@ -33,7 +33,7 @@ VSCode
 ------
 
 A very simple VSCode client is available in ``clients/vscode/``. Building
-requires nodejs and the :command:`npm` package manager:
+requires nodejs and the ``npm`` package manager:
 
 .. code-block:: shell-session
 
@@ -41,7 +41,7 @@ requires nodejs and the :command:`npm` package manager:
    $ npm run package
 
 
-Install the created :file:`rpm-spec-language-server-$VERSION.vsix` and launch
+Install the created ``rpm-spec-language-server-$VERSION.vsix`` and launch
 the language server in tcp mode.
 
 
