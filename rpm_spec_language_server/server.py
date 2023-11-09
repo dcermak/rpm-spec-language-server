@@ -120,6 +120,17 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             )
             return list(regex.finditer(file_contents))
 
+        def find_preamble_definition_in_spec(
+            file_contents: str,
+        ) -> list[re.Match[str]]:
+            regex = re.compile(
+                rf"^(\s*)({macro_under_cursor.name}):(\s+)(\S*)",
+                re.MULTILINE | re.IGNORECASE,
+            )
+            if (m := regex.search(file_contents)) is None:
+                return []
+            return [m]
+
         define_matches, file_uri = [], None
 
         # macro is defined in the spec file
@@ -128,6 +139,16 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
                 if not (define_match := find_macro_define_in_spec(spec.read(-1))):
                     return None
 
+            file_uri = param.text_document.uri
+
+        # macro is something like %version, %release, etc.
+        elif macro_under_cursor.level == MacroLevel.SPEC:
+            if not (
+                define_matches := find_preamble_definition_in_spec(
+                    str(spec_sections.spec)
+                )
+            ):
+                return None
             file_uri = param.text_document.uri
 
         # the macro comes from a macro file
