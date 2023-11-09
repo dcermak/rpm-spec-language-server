@@ -14,8 +14,8 @@ from lsprotocol.types import (
 )
 from .conftest import CLIENT_SERVER_T
 
-_HELLO_SPEC = """
-Name:       hello-world
+
+_HELLO_SPEC = """Name:       hello-world
 Version:    1
 Release:    1
 Summary:    Most simple RPM package
@@ -24,18 +24,20 @@ License:    FIXME
 %description
 This is my first RPM package, which does nothing.
 
+%global script hello-world.sh
+%define dest %{_bindir}/%script
 %prep
 # we have no source, so nothing here
 
 %build
-cat > hello-world.sh <<EOF
+cat > %script <<EOF
 #!/usr/bin/bash
-echo Hello world
+echo Hello world from package %{name}-%{version}
 EOF
 
 %install
-mkdir -p %{buildroot}/usr/bin/
-install -m 755 hello-world.sh %{buildroot}/usr/bin/hello-world.sh
+mkdir -p %{buildroot}%{_bindir}
+install -m 755 hello-world.sh %{buildroot}%{dest}
 
 %files
 /usr/bin/hello-world.sh
