@@ -190,7 +190,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
 
             """
             regex = re.compile(
-                rf"^(\s*)(%(?:global|define))(\s+)({macro_under_cursor.name})",
+                rf"^([\t \f]*)(%(?:global|define))([\t \f]+)({macro_under_cursor.name})",
                 re.MULTILINE,
             )
             return list(regex.finditer(file_contents))
@@ -201,7 +201,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
 
             """
             regex = re.compile(
-                rf"^(\s*)(%{macro_under_cursor.name})(\s+)", re.MULTILINE
+                rf"^([\t \f]*)(%{macro_under_cursor.name})([\t \f]+)(\S+)", re.MULTILINE
             )
             return list(regex.finditer(file_contents))
 
@@ -209,7 +209,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             file_contents: str,
         ) -> list[re.Match[str]]:
             regex = re.compile(
-                rf"^(\s*)({macro_under_cursor.name}):(\s+)(\S*)",
+                rf"^([\t \f]*)({macro_under_cursor.name}):([\t \f]+)(\S*)",
                 re.MULTILINE | re.IGNORECASE,
             )
             if (m := regex.search(file_contents)) is None:

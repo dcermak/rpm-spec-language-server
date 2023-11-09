@@ -29,6 +29,15 @@ foobar booo
             ),
             Position(3, 16),
         ),
+        (
+            re.search(
+                "bla",
+                """bla
+blub
+""",
+            ),
+            Position(0, 0),
+        ),
     ],
 )
 def test_position_from_match(re_match: re.Match[str], pos: Position) -> None:

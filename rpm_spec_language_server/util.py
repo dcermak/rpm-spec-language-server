@@ -20,7 +20,8 @@ def position_from_match(re_match: Match[str]) -> Position:
     # length of all the lines *before* the match
     length_of_lines = (
         # summed up length of all lines before the match
-        reduce(lambda a, b: a + b, (len(line) for line in lines_before_match))
+        # add 0 as the initial value in case the match is on the first line
+        reduce(lambda a, b: a + b, (len(line) for line in lines_before_match), 0)
         # don't forget to consider the line separators
         + len(lines_before_match)
     )
