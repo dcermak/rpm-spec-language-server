@@ -73,11 +73,9 @@ the language server in tcp mode.</p>
 <h2>vis with <a class="reference external" href="https://gitlab.com/muhq/vis-lspc">vis-lspci</a><a class="headerlink" href="#vis-with-vis-lspci" title="Link to this heading">¶</a></h2>
 <p>Add to your <cite>~/.config/vis/visrc.lua</cite> this code:</p>
 <div class="highlight-lua notranslate"><div class="highlight"><pre><span></span><span class="n">lsp</span> <span class="o">=</span> <span class="nb">require</span><span class="p">(</span><span class="s1">&#39;plugins/vis-lspc&#39;</span><span class="p">)</span>
-<span class="n">lsp</span><span class="p">.</span><span class="n">logging</span> <span class="o">=</span> <span class="kc">true</span>
-<span class="n">lsp</span><span class="p">.</span><span class="n">highlight_diagnostics</span> <span class="o">=</span> <span class="kc">true</span>
 <span class="n">lsp</span><span class="p">.</span><span class="n">ls_map</span><span class="p">[</span><span class="s1">&#39;rpmspec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
     <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;RPMSpec&#39;</span><span class="p">,</span>
-    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;python3 -mrpm_spec_language_server&#39;</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;python3 -mrpm_spec_language_server --stdio&#39;</span>
 <span class="p">}</span>
 </pre></div>
 </div>
@@ -88,12 +86,19 @@ the language server in tcp mode.</p>
 
 <span class="nb">require</span><span class="p">(</span><span class="s1">&#39;lspconfig.configs&#39;</span><span class="p">).</span><span class="n">rpmspec</span> <span class="o">=</span> <span class="p">{</span>
     <span class="n">default_config</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="n">cmd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;rpm_lsp_server&#39;</span><span class="p">,</span> <span class="s1">&#39;--verbose&#39;</span><span class="p">,</span>
-               <span class="s1">&#39;--log_file&#39;</span><span class="p">,</span> <span class="n">vim</span><span class="p">.</span><span class="n">fn</span><span class="p">.</span><span class="n">stdpath</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">)</span> <span class="o">..</span> <span class="s1">&#39;/rpm_spec_lsp-log.txt&#39;</span><span class="p">},</span>
-        <span class="n">filetypes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;spec&#39;</span><span class="p">},</span>
-        <span class="n">single_file_support</span> <span class="o">=</span> <span class="kc">true</span><span class="p">,</span>
-        <span class="n">settings</span> <span class="o">=</span> <span class="p">{},</span>
-    <span class="p">}</span>
+      <span class="n">cmd</span> <span class="o">=</span> <span class="p">{</span> <span class="s1">&#39;python3&#39;</span><span class="p">,</span> <span class="s1">&#39;-mrpm_lsp_server&#39;</span><span class="p">,</span> <span class="s1">&#39;--stdio&#39;</span> <span class="p">},</span>
+      <span class="n">filetypes</span> <span class="o">=</span> <span class="p">{</span> <span class="s1">&#39;spec&#39;</span> <span class="p">},</span>
+      <span class="n">single_file_support</span> <span class="o">=</span> <span class="kc">true</span><span class="p">,</span>
+      <span class="n">root_dir</span> <span class="o">=</span> <span class="n">util</span><span class="p">.</span><span class="n">find_git_ancestor</span><span class="p">,</span>
+      <span class="n">settings</span> <span class="o">=</span> <span class="p">{},</span>
+    <span class="p">},</span>
+    <span class="n">docs</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="n">description</span> <span class="o">=</span> <span class="s">[[</span>
+<span class="s">  https://github.com/dcermak/rpm-spec-language-server</span>
+
+<span class="s">  Language server protocol (LSP) support for RPM Spec files.</span>
+<span class="s">  ]]</span><span class="p">,</span>
+    <span class="p">},</span>
 <span class="p">}</span>
 
 <span class="n">nvim_lsp</span><span class="p">[</span><span class="s1">&#39;rpmspec&#39;</span><span class="p">].</span><span class="n">setup</span><span class="p">({})</span>
