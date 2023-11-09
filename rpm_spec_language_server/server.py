@@ -15,7 +15,6 @@ from lsprotocol.types import (
     TEXT_DOCUMENT_HOVER,
     CompletionItem,
     CompletionList,
-    CompletionOptions,
     CompletionParams,
     DefinitionParams,
     DidChangeTextDocumentParams,
@@ -54,6 +53,17 @@ class RpmSpecLanguageServer(LanguageServer):
     def __init__(self) -> None:
         super().__init__(name := "rpm_spec_language_server", metadata.version(name))
         self.spec_files: dict[str, SpecSections] = {}
+        self.macros = Macros.dump()
+        self.auto_complete_data = create_autocompletion_documentation_from_spec_md(
+            spec_md_from_rpm_db() or ""
+        )
+
+    @property
+    def macro_and_scriptlet_completions(self) -> list[CompletionItem]:
+        return [
+            CompletionItem(label=key, documentation=value)
+            for key, value in self.auto_complete_data.scriptlets.items()
+        ] + [CompletionItem(label=f"%{macro.name}") for macro in self.macros]
 
     def spec_sections_from_cache_or_file(
         self, text_document: TextDocumentIdentifier | TextDocumentItem
@@ -71,16 +81,6 @@ class RpmSpecLanguageServer(LanguageServer):
 def create_rpm_lang_server() -> RpmSpecLanguageServer:
     rpm_spec_server = RpmSpecLanguageServer()
 
-    _MACROS = Macros.dump()
-
-    auto_complete_data = create_autocompletion_documentation_from_spec_md(
-        spec_md_from_rpm_db() or ""
-    )
-
-    @rpm_spec_server.feature(
-        TEXT_DOCUMENT_COMPLETION, CompletionOptions(trigger_characters=["%"])
-    )
-    def complete_macro_name(params: CompletionParams | None) -> CompletionList:
     def did_open_or_save(
         server: RpmSpecLanguageServer,
         param: DidOpenTextDocumentParams | DidSaveTextDocumentParams,
@@ -113,13 +113,40 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
         ):
             server.spec_files[uri] = SpecSections.parse(spec)
             LOGGER.debug("Updated the spec for %s", uri)
+
+    @rpm_spec_server.feature(TEXT_DOCUMENT_COMPLETION)
+    def complete_macro_name(
+        server: RpmSpecLanguageServer, params: CompletionParams
+    ) -> CompletionList:
+        if not (
+            spec_sections := server.spec_sections_from_cache_or_file(
+                text_document=params.text_document
+            )
+        ):
+            return CompletionList(is_incomplete=False, items=[])
+
+        # we are *not* in the preamble or a %package foobar section
+        # only complete macros
+        if not (
+            cur_sect := spec_sections.section_under_cursor(params.position)
+        ) or not cur_sect.name.startswith("package"):
+            return CompletionList(
+                is_incomplete=False,
+                items=server.macro_and_scriptlet_completions,
+            )
+
+        # we are in a package section => we can return preamble and dependency
+        # tags as completion items too
         return CompletionList(
             is_incomplete=False,
             items=[
-                CompletionItem(label=key[1:], documentation=value)
-                for key, value in auto_complete_data.scriptlets.items()
+                CompletionItem(label=key, documentation=value)
+                for key, value in {
+                    **server.auto_complete_data.dependencies,
+                    **server.auto_complete_data.preamble,
+                }.items()
             ]
-            + [CompletionItem(label=macro.name) for macro in _MACROS],
+            + server.macro_and_scriptlet_completions,
         )
 
     @rpm_spec_server.feature(TEXT_DOCUMENT_DOCUMENT_SYMBOL)
