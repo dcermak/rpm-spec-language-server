@@ -1,17 +1,24 @@
+import re
 from time import sleep
 from lsprotocol.types import (
+    TEXT_DOCUMENT_DEFINITION,
     TEXT_DOCUMENT_DID_CHANGE,
     TEXT_DOCUMENT_DID_CLOSE,
     TEXT_DOCUMENT_DID_OPEN,
+    DefinitionParams,
     DidChangeTextDocumentParams,
     DidCloseTextDocumentParams,
     DidOpenTextDocumentParams,
+    Location,
+    Position,
+    Range,
     TextDocumentContentChangeEvent_Type2,
     TextDocumentIdentifier,
     TextDocumentItem,
     VersionedTextDocumentIdentifier,
 )
 from pygls.server import LanguageServer
+import pytest
 from .conftest import CLIENT_SERVER_T
 
 
@@ -38,6 +45,8 @@ EOF
 %install
 mkdir -p %{buildroot}%{_bindir}
 install -m 755 hello-world.sh %{buildroot}%{dest}
+
+%undefined_macro
 
 %files
 /usr/bin/hello-world.sh
@@ -101,3 +110,133 @@ def test_in_memory_spec_sections(client_server: CLIENT_SERVER_T) -> None:
     sleep(0.5)
 
     assert uri not in server.spec_files
+
+
+_RPM_MACROS_FILE = "/usr/lib/rpm/macros"
+# dirty, dirty…
+# but sadly we don't know exactly where %_bindir is defined in
+# /usr/lib/rpm/macros so we have to find out at runtime :-(
+with open(_RPM_MACROS_FILE, "r") as macros_file:
+    lines = macros_file.readlines()
+    bindir_define_line = -1
+    bindir_match_length = 0
+    for i, line in enumerate(lines):
+        if line.startswith("%_bindir"):
+            bindir_define_line = i
+            bindir_match_length = re.match(r"%_bindir([\t \f]+)(\S+)", line).end()
+            break
+
+assert bindir_define_line > 0, f"Could not find %_bindir in {_RPM_MACROS_FILE}"
+
+
+@pytest.mark.parametrize(
+    "cursor_position,expected_ranges,defined_in_uri",
+    [
+        (
+            # position on %{name}
+            Position(line=17, character=34),
+            [Range(start=Position(0, 0), end=Position(0, 23))],
+            None,
+        ),
+        (
+            # position on %{version}
+            Position(line=17, character=44),
+            [Range(start=Position(1, 0), end=Position(1, 13))],
+            None,
+        ),
+        (
+            # position of %dest in %install
+            Position(line=22, character=46),
+            [Range(start=Position(10, 0), end=Position(10, 12))],
+            None,
+        ),
+        (
+            # position of %script in %build
+            Position(line=15, character=9),
+            [Range(start=Position(9, 0), end=Position(9, 14))],
+            None,
+        ),
+        # %undefined_macro
+        (Position(line=24, character=10), None, None),
+        (
+            Position(line=21, character=27),
+            [
+                Range(
+                    start=Position(bindir_define_line, 0),
+                    end=Position(bindir_define_line, bindir_match_length),
+                )
+            ],
+            f"file://{_RPM_MACROS_FILE}",
+        ),
+    ],
+)
+def test_jump_to_definition(
+    client_server: CLIENT_SERVER_T,
+    cursor_position: Position,
+    expected_ranges: list[Range] | None,
+    defined_in_uri: str | None,
+) -> None:
+    client, _ = client_server
+    open_spec_file(client, (path := "/home/me/specs/hello_world.spec"), _HELLO_SPEC)
+    sleep(0.5)
+
+    resp = client.lsp.send_request(
+        TEXT_DOCUMENT_DEFINITION,
+        DefinitionParams(
+            text_document=TextDocumentIdentifier(uri=(uri := f"file://{path}")),
+            position=cursor_position,
+        ),
+    ).result()
+
+    assert resp == (
+        [Location(uri=defined_in_uri or uri, range=r) for r in expected_ranges]
+        if expected_ranges
+        else None
+    )
+
+    # insert two newlines at the beginning of the spec and repeat the
+    # gotoDefinition request with the positions two lines below => should get
+    # results shifted by exactly two lines
+    client.lsp.notify(
+        TEXT_DOCUMENT_DID_CHANGE,
+        DidChangeTextDocumentParams(
+            text_document=VersionedTextDocumentIdentifier(version=1, uri=uri),
+            content_changes=[
+                TextDocumentContentChangeEvent_Type2(text="\n\n" + _HELLO_SPEC)
+            ],
+        ),
+    )
+    sleep(0.5)
+
+    def two_lines_below(pos: Position) -> Position:
+        return Position(line=pos.line + 2, character=pos.character)
+
+    resp = client.lsp.send_request(
+        TEXT_DOCUMENT_DEFINITION,
+        DefinitionParams(
+            text_document=TextDocumentIdentifier(uri=(uri := f"file://{path}")),
+            position=two_lines_below(cursor_position),
+        ),
+    ).result()
+
+    # we edited that file but if the macro comes from a different file, then the
+    # destination will not change
+    if defined_in_uri:
+        assert expected_ranges
+        assert resp == [
+            Location(uri=defined_in_uri or uri, range=r) for r in expected_ranges
+        ]
+    else:
+        assert resp == (
+            [
+                Location(
+                    uri=uri,
+                    range=Range(
+                        start=two_lines_below(r.start), end=two_lines_below(r.end)
+                    ),
+                )
+                for r in expected_ranges
+            ]
+            if expected_ranges
+            else None
+        )
