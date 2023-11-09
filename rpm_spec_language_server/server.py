@@ -1,12 +1,17 @@
 import rpm
 import re
 from urllib.parse import urlparse
+import os.path
 from importlib import metadata
 from specfile.exceptions import RPMException
 from specfile.macros import MacroLevel, Macros
 from lsprotocol.types import (
     TEXT_DOCUMENT_COMPLETION,
     TEXT_DOCUMENT_DEFINITION,
+    TEXT_DOCUMENT_DID_CHANGE,
+    TEXT_DOCUMENT_DID_CLOSE,
+    TEXT_DOCUMENT_DID_OPEN,
+    TEXT_DOCUMENT_DID_SAVE,
     TEXT_DOCUMENT_DOCUMENT_SYMBOL,
     TEXT_DOCUMENT_HOVER,
     CompletionItem,
@@ -14,6 +19,10 @@ from lsprotocol.types import (
     CompletionOptions,
     CompletionParams,
     DefinitionParams,
+    DidChangeTextDocumentParams,
+    DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams,
+    DidSaveTextDocumentParams,
     DocumentSymbol,
     DocumentSymbolParams,
     Hover,
@@ -34,8 +43,13 @@ from rpm_spec_language_server.extract_docs import (
     create_autocompletion_documentation_from_spec_md,
     spec_md_from_rpm_db,
 )
+from rpm_spec_language_server.logging import LOGGER
 from rpm_spec_language_server.macros import get_macro_under_cursor
-from rpm_spec_language_server.util import position_from_match
+from rpm_spec_language_server.util import (
+    position_from_match,
+    spec_from_text,
+    spec_from_text_document,
+)
 
 
 class RpmSpecLanguageServer(LanguageServer):
@@ -69,6 +83,38 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
         TEXT_DOCUMENT_COMPLETION, CompletionOptions(trigger_characters=["%"])
     )
     def complete_macro_name(params: CompletionParams | None) -> CompletionList:
+    def did_open_or_save(
+        server: RpmSpecLanguageServer,
+        param: DidOpenTextDocumentParams | DidSaveTextDocumentParams,
+    ) -> None:
+        LOGGER.debug("open or save event")
+        if not (spec := spec_from_text_document(param.text_document)):
+            return None
+
+        LOGGER.debug("Saving parsed spec for %s", param.text_document.uri)
+        server.spec_files[param.text_document.uri] = SpecSections.parse(spec)
+
+    rpm_spec_server.feature(TEXT_DOCUMENT_DID_OPEN)(did_open_or_save)
+    rpm_spec_server.feature(TEXT_DOCUMENT_DID_SAVE)(did_open_or_save)
+
+    @rpm_spec_server.feature(TEXT_DOCUMENT_DID_CLOSE)
+    def did_close(
+        server: RpmSpecLanguageServer, param: DidCloseTextDocumentParams
+    ) -> None:
+        if param.text_document.uri in server.spec_files:
+            del server.spec_files[param.text_document.uri]
+
+    @rpm_spec_server.feature(TEXT_DOCUMENT_DID_CHANGE)
+    def did_change(
+        server: RpmSpecLanguageServer, param: DidChangeTextDocumentParams
+    ) -> None:
+        LOGGER.debug("Text document %s changed", (uri := param.text_document.uri))
+
+        if spec := spec_from_text(
+            server.workspace.text_documents[uri].source, os.path.basename(uri)
+        ):
+            server.spec_files[uri] = SpecSections.parse(spec)
+            LOGGER.debug("Updated the spec for %s", uri)
         return CompletionList(
             is_incomplete=False,
             items=[

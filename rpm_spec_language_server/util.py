@@ -30,6 +30,27 @@ def position_from_match(re_match: Match[str]) -> Position:
     return Position(line=line_count_before_match, character=character_pos)
 
 
+def spec_from_text(spec_contents: str, file_name: str | None = None) -> Specfile | None:
+    """Load a specfile with the supplied contents and return a ``Specfile``
+    instance or ``None`` if the spec cannot be parsed.
+
+    The optional ``file_name`` parameter can be used to set the file name of the
+    temporary spec that is used for parsing.
+
+    """
+    with TemporaryDirectory() as tmp_dir:
+        with open(
+            path := (f"{tmp_dir}/{file_name or 'unnamed.spec'}"), "w"
+        ) as tmp_spec:
+            tmp_spec.write(spec_contents)
+
+        try:
+            return Specfile(path)
+        except RPMException as rpm_exc:
+            LOGGER.debug("Failed to parse spec, got %s", rpm_exc)
+            return None
+
+
 def spec_from_text_document(
     text_document: TextDocumentIdentifier | TextDocumentItem,
 ) -> Specfile | None:
@@ -54,12 +75,4 @@ def spec_from_text_document(
             LOGGER.debug("Failed to parse spec %s, got %s", url.path, rpm_exc)
             return None
 
-    with TemporaryDirectory() as tmp_dir:
-        with open(path := (f"{tmp_dir}/{os.path.basename(url.path)}"), "w") as tmp_spec:
-            tmp_spec.write(text)
-
-        try:
-            return Specfile(path)
-        except RPMException as rpm_exc:
-            LOGGER.debug("Failed to parse spec, got %s", rpm_exc)
-            return None
+    return spec_from_text(text, os.path.basename(url.path))
