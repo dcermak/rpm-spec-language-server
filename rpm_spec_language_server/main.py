@@ -1,14 +1,6 @@
 import logging
+from rpm_spec_language_server.logging import LOG_LEVELS, LOGGER
 from rpm_spec_language_server.server import create_rpm_lang_server
-
-logging.basicConfig(format="%(levelname)s:%(funcName)s:%(message)s", level=logging.INFO)
-log = logging.getLogger()
-
-_LOG_LEVELS = [
-    logging.WARNING,
-    logging.INFO,
-    logging.DEBUG,
-]
 
 
 def main() -> None:
@@ -32,13 +24,13 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    log_level = _LOG_LEVELS[min(args.verbose or 0, len(_LOG_LEVELS) - 1)]
+    log_level = LOG_LEVELS[min(args.verbose or 0, len(LOG_LEVELS) - 1)]
 
     if args.log_file:
-        log.removeHandler(log.handlers[0])
-        log.addHandler(logging.FileHandler(args.log_file[0]))
+        LOGGER.removeHandler(LOGGER.handlers[0])
+        LOGGER.addHandler(logging.FileHandler(args.log_file[0]))
 
-    log.setLevel(log_level)
+    LOGGER.setLevel(log_level)
 
     server = create_rpm_lang_server()
 
