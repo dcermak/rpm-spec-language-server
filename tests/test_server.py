@@ -1,5 +1,4 @@
 from time import sleep
-from pathlib import Path
 from lsprotocol.types import (
     TEXT_DOCUMENT_DID_CHANGE,
     TEXT_DOCUMENT_DID_CLOSE,
@@ -12,6 +11,7 @@ from lsprotocol.types import (
     TextDocumentItem,
     VersionedTextDocumentIdentifier,
 )
+from pygls.server import LanguageServer
 from .conftest import CLIENT_SERVER_T
 
 
@@ -47,29 +47,28 @@ install -m 755 hello-world.sh %{buildroot}%{dest}
 """
 
 
-def test_in_memory_spec_sections(
-    client_server: CLIENT_SERVER_T, tmp_path: Path
-) -> None:
-    with open(path := str(tmp_path / "hello_world.spec"), "w") as f:
-        f.write(_HELLO_SPEC)
-    client, server = client_server
-
+def open_spec_file(client: LanguageServer, path: str, file_contents: str) -> None:
     client.lsp.notify(
         TEXT_DOCUMENT_DID_OPEN,
         DidOpenTextDocumentParams(
             text_document=TextDocumentItem(
-                uri=(uri := f"file://{path}"),
+                uri=f"file://{path}",
                 version=0,
                 language_id="rpmspec",
-                text=_HELLO_SPEC,
+                text=file_contents,
             )
         ),
     )
 
+
+def test_in_memory_spec_sections(client_server: CLIENT_SERVER_T) -> None:
+    client, server = client_server
+    open_spec_file(client, (path := "/home/me/specs/hello_world.spec"), _HELLO_SPEC)
     sleep(0.5)
+
     assert (
         server.spec_files
-        and uri in server.spec_files
+        and (uri := f"file://{path}") in server.spec_files
         and str(server.spec_files[uri].spec) == _HELLO_SPEC
     )
 
