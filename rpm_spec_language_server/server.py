@@ -98,7 +98,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
         if not macro_under_cursor:
             return None
 
-        def find_macro_define_in_spec(file_contents: str) -> re.Match[str] | None:
+        def find_macro_define_in_spec(file_contents: str) -> list[re.Match[str]]:
             """Searches for the definition of the macro ``macro_under_cursor``
             as it would appear in a spec file, i.e.: ``%global macro`` or
             ``%define macro``.
@@ -108,9 +108,9 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
                 rf"^(\s*)(%(?:global|define))(\s+)({macro_under_cursor.name})",
                 re.MULTILINE,
             )
-            return regex.search(file_contents)
+            return list(regex.finditer(file_contents))
 
-        def find_macro_in_macro_file(file_contents: str) -> re.Match[str] | None:
+        def find_macro_in_macro_file(file_contents: str) -> list[re.Match[str]]:
             """Searches for the definition of the macro ``macro_under_cursor``
             as it would appear in a rpm macros file, i.e.: ``%macro …``.
 
@@ -118,9 +118,9 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             regex = re.compile(
                 rf"^(\s*)(%{macro_under_cursor.name})(\s+)", re.MULTILINE
             )
-            return regex.search(file_contents)
+            return list(regex.finditer(file_contents))
 
-        define_match, file_uri = None, None
+        define_matches, file_uri = [], None
 
         # macro is defined in the spec file
         if macro_under_cursor.level == MacroLevel.GLOBAL:
@@ -150,7 +150,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
                 for f in rpm.files(pkg):
                     if f.name.startswith(MACROS_DIR):
                         with open(f.name) as macro_file_f:
-                            if define_match := find_macro_in_macro_file(
+                            if define_matches := find_macro_in_macro_file(
                                 macro_file_f.read(-1)
                             ):
                                 file_uri = f"file://{f.name}"
@@ -158,25 +158,32 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
 
             # we didn't find a match
             # => the macro can be from %_rpmconfigdir/macros (no provides generated for it)
-            if not define_match:
+            if not define_matches:
                 fname = rpm.expandMacro("%_rpmconfigdir") + "/macros"
                 with open(fname) as macro_file_f:
-                    if define_match := find_macro_in_macro_file(macro_file_f.read(-1)):
+                    if define_matches := find_macro_in_macro_file(
+                        macro_file_f.read(-1)
+                    ):
                         file_uri = f"file://{fname}"
 
-        if define_match and file_uri:
-            return Location(
-                uri=file_uri,
-                range=Range(
-                    start := position_from_match(define_match),
-                    Position(
-                        line=start.line,
-                        character=(
-                            start.character + define_match.end() - define_match.start()
+        if define_matches and file_uri:
+            return [
+                Location(
+                    uri=file_uri,
+                    range=Range(
+                        start := position_from_match(define_match),
+                        Position(
+                            line=start.line,
+                            character=(
+                                start.character
+                                + define_match.end()
+                                - define_match.start()
+                            ),
                         ),
                     ),
-                ),
-            )
+                )
+                for define_match in define_matches
+            ]
 
         return None
 
