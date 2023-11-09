@@ -1,8 +1,9 @@
 from pathlib import Path
 
 from lsprotocol.types import DocumentSymbol, Position, Range, SymbolKind
+from specfile.specfile import Specfile
 
-from rpm_spec_language_server.document_symbols import spec_to_document_symbols
+from rpm_spec_language_server.document_symbols import SpecSections
 
 
 # from https://build.opensuse.org/package/view_file/devel:libraries:c_c++/notmuch/notmuch.spec?expand=1
@@ -264,7 +265,7 @@ def test_simple_spec_document_symbols(tmp_path: Path) -> None:
     with open((spec_path := tmp_path / "notmuch.spec"), "w") as spec:
         spec.write(_NOTMUCH_SPEC)
 
-    doc_symbols = spec_to_document_symbols(str(spec_path))
+    doc_symbols = SpecSections.parse(Specfile(str(spec_path))).to_document_symbols()
     assert doc_symbols[0] == DocumentSymbol(
         name="package",
         kind=SymbolKind.Namespace,
