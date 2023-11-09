@@ -1,6 +1,7 @@
 import rpm
 import re
 from urllib.parse import urlparse
+from importlib import metadata
 from specfile.exceptions import RPMException
 from specfile.macros import MacroLevel, Macros
 from lsprotocol.types import (
@@ -22,10 +23,13 @@ from lsprotocol.types import (
     Position,
     Range,
     SymbolInformation,
+    TextDocumentIdentifier,
+    TextDocumentItem,
 )
 from pygls.server import LanguageServer
 
 from rpm_spec_language_server.document_symbols import spec_to_document_symbols
+from rpm_spec_language_server.document_symbols import SpecSections
 from rpm_spec_language_server.extract_docs import (
     create_autocompletion_documentation_from_spec_md,
     spec_md_from_rpm_db,
@@ -35,11 +39,25 @@ from rpm_spec_language_server.util import position_from_match
 
 
 class RpmSpecLanguageServer(LanguageServer):
-    pass
+    def __init__(self) -> None:
+        super().__init__(name := "rpm_spec_language_server", metadata.version(name))
+        self.spec_files: dict[str, SpecSections] = {}
+
+    def spec_sections_from_cache_or_file(
+        self, text_document: TextDocumentIdentifier | TextDocumentItem
+    ) -> SpecSections | None:
+        if sections := self.spec_files.get((uri := text_document.uri), None):
+            return sections
+
+        if not (spec := spec_from_text_document(text_document)):
+            return None
+
+        self.spec_files[uri] = (sect := SpecSections.parse(spec))
+        return sect
 
 
 def create_rpm_lang_server() -> RpmSpecLanguageServer:
-    rpm_spec_server = RpmSpecLanguageServer("rpm-spec-server", "0.0.1")
+    rpm_spec_server = RpmSpecLanguageServer()
 
     _MACROS = Macros.dump()
 
