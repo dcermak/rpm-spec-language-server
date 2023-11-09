@@ -9,6 +9,7 @@
 
 # There's no standard layout here so this is Ultra Custom
 
+import os
 from dataclasses import dataclass
 
 import rpm
@@ -147,11 +148,16 @@ def create_autocompletion_documentation_from_spec_md(spec_md: str) -> AutoComple
 
 
 def spec_md_from_rpm_db() -> str | None:
-    ts = rpm.TransactionSet()
-    for pkg in ts.dbMatch("name", "rpm"):
-        for f in rpm.files(pkg):
-            if (path := f.name).endswith("spec.md"):
-                with open(path) as spec_md_f:
-                    return spec_md_f.read(-1)
+    path = os.path.expanduser("~/.cache/rpm/spec.md")
+    if os.path.exists(path):
+        with open(path) as spec_md_f:
+            return spec_md_f.read(-1)
+    else:
+        ts = rpm.TransactionSet()
+        for pkg in ts.dbMatch("name", "rpm"):
+            for f in rpm.files(pkg):
+                if (path := f.name).endswith("spec.md"):
+                    with open(path) as spec_md_f:
+                        return spec_md_f.read(-1)
 
     return None
