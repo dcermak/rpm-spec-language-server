@@ -42,9 +42,13 @@ jobs:
           path: ~/.cache/pypoetry/virtualenvs
           key: poetry-${{ hashFiles('poetry.lock') }}
 
-      - run: zypper -n ref
-        # python3 required for sqlite3 module
-      - run: zypper -n in python3-pipx python3-rpm python3
+      - run: |
+          sed -i 's|rpm\.install\.excludedocs = yes|rpm\.install\.excludedocs = no|' /etc/zypp/zypp.conf
+          zypper -n ref
+          # reinstall rpm to get spec.md
+          zypper -n in -f rpm
+          # python3 required for sqlite3 module
+          zypper -n in python3-pipx python3-rpm python3
 
       - run: pipx install poetry
         env:
