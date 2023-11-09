@@ -1,3 +1,4 @@
+from typing import overload
 from urllib.parse import urlparse
 
 from lsprotocol.types import Position, TextDocumentIdentifier
@@ -44,17 +45,42 @@ def get_macro_string_at_position(line: str, character: int) -> str | None:
     return line[start_of_macro:end_of_macro]
 
 
+@overload
 def get_macro_under_cursor(
+    *,
+    spec: Specfile,
+    position: Position,
+    macros_dump: list[Macro] | None = None,
+) -> Macro | None:
+    ...
+
+
+@overload
+def get_macro_under_cursor(
+    *,
     text_document: TextDocumentIdentifier,
     position: Position,
     macros_dump: list[Macro] | None = None,
 ) -> Macro | None:
-    url = urlparse(text_document.uri)
+    ...
 
-    if url.scheme != "file" or not url.path.endswith(".spec"):
-        return None
 
-    spec = Specfile(url.path)
+def get_macro_under_cursor(
+    *,
+    spec: Specfile | None = None,
+    text_document: TextDocumentIdentifier | None = None,
+    position: Position,
+    macros_dump: list[Macro] | None = None,
+) -> Macro | None:
+    if text_document is not None:
+        url = urlparse(text_document.uri)
+
+        if url.scheme != "file" or not url.path.endswith(".spec"):
+            return None
+
+        spec = Specfile(url.path)
+
+    assert spec
 
     with spec.lines() as lines:
         symbol = get_macro_string_at_position(lines[position.line], position.character)

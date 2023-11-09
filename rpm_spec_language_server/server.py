@@ -1,18 +1,26 @@
 import rpm
 import re
-from urllib.parse import urlparse
+import os.path
+from importlib import metadata
 from specfile.exceptions import RPMException
 from specfile.macros import MacroLevel, Macros
 from lsprotocol.types import (
     TEXT_DOCUMENT_COMPLETION,
     TEXT_DOCUMENT_DEFINITION,
+    TEXT_DOCUMENT_DID_CHANGE,
+    TEXT_DOCUMENT_DID_CLOSE,
+    TEXT_DOCUMENT_DID_OPEN,
+    TEXT_DOCUMENT_DID_SAVE,
     TEXT_DOCUMENT_DOCUMENT_SYMBOL,
     TEXT_DOCUMENT_HOVER,
     CompletionItem,
     CompletionList,
-    CompletionOptions,
     CompletionParams,
     DefinitionParams,
+    DidChangeTextDocumentParams,
+    DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams,
+    DidSaveTextDocumentParams,
     DocumentSymbol,
     DocumentSymbolParams,
     Hover,
@@ -22,65 +30,160 @@ from lsprotocol.types import (
     Position,
     Range,
     SymbolInformation,
+    TextDocumentIdentifier,
+    TextDocumentItem,
 )
 from pygls.server import LanguageServer
 
-from rpm_spec_language_server.document_symbols import spec_to_document_symbols
+from rpm_spec_language_server.document_symbols import SpecSections
 from rpm_spec_language_server.extract_docs import (
     create_autocompletion_documentation_from_spec_md,
     spec_md_from_rpm_db,
 )
+from rpm_spec_language_server.logging import LOGGER
 from rpm_spec_language_server.macros import get_macro_under_cursor
-from rpm_spec_language_server.util import position_from_match
+from rpm_spec_language_server.util import (
+    position_from_match,
+    spec_from_text,
+    spec_from_text_document,
+)
 
 
 class RpmSpecLanguageServer(LanguageServer):
-    pass
+    def __init__(self) -> None:
+        super().__init__(name := "rpm_spec_language_server", metadata.version(name))
+        self.spec_files: dict[str, SpecSections] = {}
+        self.macros = Macros.dump()
+        self.auto_complete_data = create_autocompletion_documentation_from_spec_md(
+            spec_md_from_rpm_db() or ""
+        )
+
+    @property
+    def macro_and_scriptlet_completions(self) -> list[CompletionItem]:
+        return [
+            CompletionItem(label=key, documentation=value)
+            for key, value in self.auto_complete_data.scriptlets.items()
+        ] + [CompletionItem(label=f"%{macro.name}") for macro in self.macros]
+
+    def spec_sections_from_cache_or_file(
+        self, text_document: TextDocumentIdentifier | TextDocumentItem
+    ) -> SpecSections | None:
+        if sections := self.spec_files.get((uri := text_document.uri), None):
+            return sections
+
+        if not (spec := spec_from_text_document(text_document)):
+            return None
+
+        self.spec_files[uri] = (sect := SpecSections.parse(spec))
+        return sect
 
 
 def create_rpm_lang_server() -> RpmSpecLanguageServer:
-    rpm_spec_server = RpmSpecLanguageServer("rpm-spec-server", "0.0.1")
+    rpm_spec_server = RpmSpecLanguageServer()
 
-    _MACROS = Macros.dump()
+    def did_open_or_save(
+        server: RpmSpecLanguageServer,
+        param: DidOpenTextDocumentParams | DidSaveTextDocumentParams,
+    ) -> None:
+        LOGGER.debug("open or save event")
+        if not (spec := spec_from_text_document(param.text_document)):
+            return None
 
-    auto_complete_data = create_autocompletion_documentation_from_spec_md(
-        spec_md_from_rpm_db() or ""
-    )
+        LOGGER.debug("Saving parsed spec for %s", param.text_document.uri)
+        server.spec_files[param.text_document.uri] = SpecSections.parse(spec)
 
-    @rpm_spec_server.feature(
-        TEXT_DOCUMENT_COMPLETION, CompletionOptions(trigger_characters=["%"])
-    )
-    def complete_macro_name(params: CompletionParams | None) -> CompletionList:
+    rpm_spec_server.feature(TEXT_DOCUMENT_DID_OPEN)(did_open_or_save)
+    rpm_spec_server.feature(TEXT_DOCUMENT_DID_SAVE)(did_open_or_save)
+
+    @rpm_spec_server.feature(TEXT_DOCUMENT_DID_CLOSE)
+    def did_close(
+        server: RpmSpecLanguageServer, param: DidCloseTextDocumentParams
+    ) -> None:
+        if param.text_document.uri in server.spec_files:
+            del server.spec_files[param.text_document.uri]
+
+    @rpm_spec_server.feature(TEXT_DOCUMENT_DID_CHANGE)
+    def did_change(
+        server: RpmSpecLanguageServer, param: DidChangeTextDocumentParams
+    ) -> None:
+        LOGGER.debug("Text document %s changed", (uri := param.text_document.uri))
+
+        if spec := spec_from_text(
+            server.workspace.text_documents[uri].source, os.path.basename(uri)
+        ):
+            server.spec_files[uri] = SpecSections.parse(spec)
+            LOGGER.debug("Updated the spec for %s", uri)
+
+    @rpm_spec_server.feature(TEXT_DOCUMENT_COMPLETION)
+    def complete_macro_name(
+        server: RpmSpecLanguageServer, params: CompletionParams
+    ) -> CompletionList:
+        if not (
+            spec_sections := server.spec_sections_from_cache_or_file(
+                text_document=params.text_document
+            )
+        ):
+            return CompletionList(is_incomplete=False, items=[])
+
+        # we are *not* in the preamble or a %package foobar section
+        # only complete macros
+        if not (
+            cur_sect := spec_sections.section_under_cursor(params.position)
+        ) or not cur_sect.name.startswith("package"):
+            return CompletionList(
+                is_incomplete=False,
+                items=server.macro_and_scriptlet_completions,
+            )
+
+        # we are in a package section => we can return preamble and dependency
+        # tags as completion items too
         return CompletionList(
             is_incomplete=False,
             items=[
-                CompletionItem(label=key[1:], documentation=value)
-                for key, value in auto_complete_data.scriptlets.items()
+                CompletionItem(label=key, documentation=value)
+                for key, value in {
+                    **server.auto_complete_data.dependencies,
+                    **server.auto_complete_data.preamble,
+                }.items()
             ]
-            + [CompletionItem(label=macro.name) for macro in _MACROS],
+            + server.macro_and_scriptlet_completions,
         )
 
     @rpm_spec_server.feature(TEXT_DOCUMENT_DOCUMENT_SYMBOL)
     def spec_symbols(
+        server: RpmSpecLanguageServer,
         param: DocumentSymbolParams,
     ) -> list[DocumentSymbol] | list[SymbolInformation] | None:
-        url = urlparse(param.text_document.uri)
-
-        if url.scheme != "file" or not url.path.endswith(".spec"):
+        if not (
+            spec_sections := server.spec_sections_from_cache_or_file(
+                text_document=param.text_document
+            )
+        ):
             return None
 
-        return spec_to_document_symbols(url.path)
+        return spec_sections.to_document_symbols()
 
     @rpm_spec_server.feature(TEXT_DOCUMENT_DEFINITION)
     def find_macro_definition(
+        server: RpmSpecLanguageServer,
         param: DefinitionParams,
     ) -> Location | list[Location] | list[LocationLink] | None:
-        macro_under_cursor = get_macro_under_cursor(param.text_document, param.position)
+        # get the in memory spec if available
+        if not (
+            spec_sections := server.spec_sections_from_cache_or_file(
+                param.text_document
+            )
+        ):
+            return None
+
+        macro_under_cursor = get_macro_under_cursor(
+            spec=spec_sections.spec, position=param.position
+        )
 
         if not macro_under_cursor:
             return None
 
-        def find_macro_define_in_spec(file_contents: str) -> re.Match[str] | None:
+        def find_macro_define_in_spec(file_contents: str) -> list[re.Match[str]]:
             """Searches for the definition of the macro ``macro_under_cursor``
             as it would appear in a spec file, i.e.: ``%global macro`` or
             ``%define macro``.
@@ -90,9 +193,9 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
                 rf"^(\s*)(%(?:global|define))(\s+)({macro_under_cursor.name})",
                 re.MULTILINE,
             )
-            return regex.search(file_contents)
+            return list(regex.finditer(file_contents))
 
-        def find_macro_in_macro_file(file_contents: str) -> re.Match[str] | None:
+        def find_macro_in_macro_file(file_contents: str) -> list[re.Match[str]]:
             """Searches for the definition of the macro ``macro_under_cursor``
             as it would appear in a rpm macros file, i.e.: ``%macro …``.
 
@@ -100,16 +203,38 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             regex = re.compile(
                 rf"^(\s*)(%{macro_under_cursor.name})(\s+)", re.MULTILINE
             )
-            return regex.search(file_contents)
+            return list(regex.finditer(file_contents))
 
-        define_match, file_uri = None, None
+        def find_preamble_definition_in_spec(
+            file_contents: str,
+        ) -> list[re.Match[str]]:
+            regex = re.compile(
+                rf"^(\s*)({macro_under_cursor.name}):(\s+)(\S*)",
+                re.MULTILINE | re.IGNORECASE,
+            )
+            if (m := regex.search(file_contents)) is None:
+                return []
+            return [m]
+
+        define_matches, file_uri = [], None
 
         # macro is defined in the spec file
         if macro_under_cursor.level == MacroLevel.GLOBAL:
-            with open(urlparse(param.text_document.uri).path) as spec:
-                if not (define_match := find_macro_define_in_spec(spec.read(-1))):
-                    return None
+            if not (
+                define_matches := find_macro_define_in_spec(str(spec_sections.spec))
+            ):
+                return None
 
+            file_uri = param.text_document.uri
+
+        # macro is something like %version, %release, etc.
+        elif macro_under_cursor.level == MacroLevel.SPEC:
+            if not (
+                define_matches := find_preamble_definition_in_spec(
+                    str(spec_sections.spec)
+                )
+            ):
+                return None
             file_uri = param.text_document.uri
 
         # the macro comes from a macro file
@@ -132,7 +257,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
                 for f in rpm.files(pkg):
                     if f.name.startswith(MACROS_DIR):
                         with open(f.name) as macro_file_f:
-                            if define_match := find_macro_in_macro_file(
+                            if define_matches := find_macro_in_macro_file(
                                 macro_file_f.read(-1)
                             ):
                                 file_uri = f"file://{f.name}"
@@ -140,31 +265,48 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
 
             # we didn't find a match
             # => the macro can be from %_rpmconfigdir/macros (no provides generated for it)
-            if not define_match:
+            if not define_matches:
                 fname = rpm.expandMacro("%_rpmconfigdir") + "/macros"
                 with open(fname) as macro_file_f:
-                    if define_match := find_macro_in_macro_file(macro_file_f.read(-1)):
+                    if define_matches := find_macro_in_macro_file(
+                        macro_file_f.read(-1)
+                    ):
                         file_uri = f"file://{fname}"
 
-        if define_match and file_uri:
-            return Location(
-                uri=file_uri,
-                range=Range(
-                    start := position_from_match(define_match),
-                    Position(
-                        line=start.line,
-                        character=(
-                            start.character + define_match.end() - define_match.start()
+        if define_matches and file_uri:
+            return [
+                Location(
+                    uri=file_uri,
+                    range=Range(
+                        start := position_from_match(define_match),
+                        Position(
+                            line=start.line,
+                            character=(
+                                start.character
+                                + define_match.end()
+                                - define_match.start()
+                            ),
                         ),
                     ),
-                ),
-            )
+                )
+                for define_match in define_matches
+            ]
 
         return None
 
     @rpm_spec_server.feature(TEXT_DOCUMENT_HOVER)
-    def expand_macro(params: HoverParams) -> Hover | None:
-        macro = get_macro_under_cursor(params.text_document, params.position)
+    def expand_macro(
+        server: RpmSpecLanguageServer, params: HoverParams
+    ) -> Hover | None:
+        if spec_sections := server.spec_files.get(params.text_document.uri, None):
+            macro = get_macro_under_cursor(
+                spec=spec_sections.spec, position=params.position
+            )
+        else:
+            macro = get_macro_under_cursor(
+                text_document=params.text_document, position=params.position
+            )
+
         if not macro:
             return None
 
