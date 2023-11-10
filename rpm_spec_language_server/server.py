@@ -264,7 +264,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             return None
 
         macro_under_cursor = get_macro_under_cursor(
-            spec=spec_sections.spec, position=param.position
+            spec=spec_sections.spec, position=param.position, macros_dump=server.macros
         )
 
         if not macro_under_cursor:
@@ -398,11 +398,15 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
     ) -> Hover | None:
         if spec_sections := server.spec_files.get(params.text_document.uri, None):
             macro = get_macro_under_cursor(
-                spec=spec_sections.spec, position=params.position
+                spec=spec_sections.spec,
+                position=params.position,
+                macros_dump=server.macros,
             )
         else:
             macro = get_macro_under_cursor(
-                text_document=params.text_document, position=params.position
+                text_document=params.text_document,
+                position=params.position,
+                macros_dump=server.macros,
             )
 
         # not a macro or an unknown macro => cannot show a meaningful hover
