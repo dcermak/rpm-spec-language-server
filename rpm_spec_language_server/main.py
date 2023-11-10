@@ -1,6 +1,4 @@
 import logging
-from rpm_spec_language_server.logging import LOG_LEVELS, LOGGER
-from rpm_spec_language_server.server import create_rpm_lang_server
 
 
 def main() -> None:
@@ -21,8 +19,21 @@ def main() -> None:
         "--host", type=str, default="127.0.0.1", help="Bind to this address"
     )
     parser.add_argument("--port", type=int, default=2087, help="Bind to this port")
+    parser.add_argument(
+        "--runtime-type-checks",
+        action="store_true",
+        help="Add typeguard runtime type checking",
+    )
 
     args = parser.parse_args()
+
+    if args.runtime_type_checks:
+        from typeguard import install_import_hook
+
+        install_import_hook("rpm_spec_language_server")
+
+    from rpm_spec_language_server.logging import LOG_LEVELS, LOGGER
+    from rpm_spec_language_server.server import create_rpm_lang_server
 
     log_level = LOG_LEVELS[min(args.verbose or 0, len(LOG_LEVELS) - 1)]
 
