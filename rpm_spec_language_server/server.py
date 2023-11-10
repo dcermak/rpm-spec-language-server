@@ -413,6 +413,9 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
         if not macro or isinstance(macro, str):
             return None
 
+        if macro.level == MacroLevel.BUILTIN:
+            return Hover(contents="builtin")
+
         try:
             return Hover(contents=Macros.expand(macro.body))
         except RPMException:
