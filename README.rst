@@ -55,6 +55,12 @@ module directly:
    pip install --user dist/rpm_spec_language_server-*.whl
    python -m rpm_spec_language_server
 
+The server requires the `spec.md
+<https://raw.githubusercontent.com/rpm-software-management/rpm/master/docs/manual/spec.md>`_
+file. It can either use the locally installed copy from the ``rpm`` package or
+(if the documentation has not been installed) from a locally cached version in
+``~/.cache/rpm/spec.md``.
+
 
 Clients
 =======
