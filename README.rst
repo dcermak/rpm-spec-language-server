@@ -1,6 +1,7 @@
 RPM Spec File Language Server
 =============================
 
+|CI Status|  |VSCode CI Status|  |Code Coverage|
 
 .. |CI Status| image:: https://github.com/dcermak/rpm-spec-language-server/actions/workflows/ci.yml/badge.svg
    :target: https://github.com/dcermak/rpm-spec-language-server/actions/workflows/ci.yml
