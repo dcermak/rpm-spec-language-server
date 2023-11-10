@@ -15,6 +15,7 @@ from lsprotocol.types import (
     TEXT_DOCUMENT_HOVER,
     CompletionItem,
     CompletionList,
+    CompletionOptions,
     CompletionParams,
     DefinitionParams,
     DidChangeTextDocumentParams,
@@ -58,12 +59,28 @@ class RpmSpecLanguageServer(LanguageServer):
             spec_md_from_rpm_db() or ""
         )
 
-    @property
-    def macro_and_scriptlet_completions(self) -> list[CompletionItem]:
+    def macro_and_scriptlet_completions(
+        self, with_percent: bool
+    ) -> list[CompletionItem]:
         return [
-            CompletionItem(label=key, documentation=value)
+            CompletionItem(label=key if with_percent else key[1:], documentation=value)
             for key, value in self.auto_complete_data.scriptlets.items()
-        ] + [CompletionItem(label=f"%{macro.name}") for macro in self.macros]
+        ] + [
+            CompletionItem(label=f"%{macro.name}" if with_percent else macro.name)
+            for macro in self.macros
+        ]
+
+    @property
+    def trigger_characters(self) -> list[str]:
+        return list(
+            set(
+                preamble_element[0]
+                for preamble_element in {
+                    **self.auto_complete_data.preamble,
+                    **self.auto_complete_data.dependencies,
+                }
+            ).union({"%"})
+        )
 
     def spec_sections_from_cache_or_file(
         self, text_document: TextDocumentIdentifier | TextDocumentItem
@@ -114,7 +131,10 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             server.spec_files[uri] = SpecSections.parse(spec)
             LOGGER.debug("Updated the spec for %s", uri)
 
-    @rpm_spec_server.feature(TEXT_DOCUMENT_COMPLETION)
+    @rpm_spec_server.feature(
+        TEXT_DOCUMENT_COMPLETION,
+        CompletionOptions(trigger_characters=rpm_spec_server.trigger_characters),
+    )
     def complete_macro_name(
         server: RpmSpecLanguageServer, params: CompletionParams
     ) -> CompletionList:
@@ -125,29 +145,72 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
         ):
             return CompletionList(is_incomplete=False, items=[])
 
+        trigger_char = (
+            None if params.context is None else params.context.trigger_character
+        )
+
         # we are *not* in the preamble or a %package foobar section
         # only complete macros
         if not (
             cur_sect := spec_sections.section_under_cursor(params.position)
         ) or not cur_sect.name.startswith("package"):
-            return CompletionList(
-                is_incomplete=False,
-                items=server.macro_and_scriptlet_completions,
+            # also if we have no completion context, just send macros and if we
+            # have it, only send them if this was triggered by a %
+            LOGGER.debug(
+                "Sending completions for outside the package section with trigger_character %s",
+                trigger_char,
             )
+            if (trigger_char and trigger_char == "%") or trigger_char is None:
+                return CompletionList(
+                    is_incomplete=False,
+                    items=server.macro_and_scriptlet_completions(
+                        with_percent=trigger_char is None
+                    ),
+                )
+            return CompletionList(is_incomplete=False, items=[])
 
         # we are in a package section => we can return preamble and dependency
         # tags as completion items too
-        return CompletionList(
-            is_incomplete=False,
-            items=[
-                CompletionItem(label=key, documentation=value)
-                for key, value in {
-                    **server.auto_complete_data.dependencies,
-                    **server.auto_complete_data.preamble,
-                }.items()
-            ]
-            + server.macro_and_scriptlet_completions,
-        )
+
+        # return everything if we have no trigger character
+        if trigger_char is None:
+            LOGGER.debug(
+                "Sending completions for %package/preamble without a trigger_character"
+            )
+            return CompletionList(
+                is_incomplete=False,
+                items=[
+                    CompletionItem(label=key, documentation=value)
+                    for key, value in {
+                        **server.auto_complete_data.dependencies,
+                        **server.auto_complete_data.preamble,
+                    }.items()
+                ]
+                + server.macro_and_scriptlet_completions(with_percent=True),
+            )
+
+        if trigger_char == "%":
+            LOGGER.debug("Sending completions for %package/premable triggered by %")
+            return CompletionList(
+                is_incomplete=False,
+                items=server.macro_and_scriptlet_completions(with_percent=False),
+            )
+        else:
+            LOGGER.debug(
+                "Sending completions for %package/premable triggered by %s",
+                trigger_char,
+            )
+            return CompletionList(
+                is_incomplete=False,
+                items=[
+                    CompletionItem(label=key, documentation=value)
+                    for key, value in {
+                        **server.auto_complete_data.dependencies,
+                        **server.auto_complete_data.preamble,
+                    }.items()
+                    if key.startswith(trigger_char)
+                ],
+            )
 
     @rpm_spec_server.feature(TEXT_DOCUMENT_DOCUMENT_SYMBOL)
     def spec_symbols(
