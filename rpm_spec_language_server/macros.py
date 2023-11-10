@@ -37,6 +37,11 @@ def get_macro_string_at_position(line: str, character: int) -> str | None:
     if line[start_of_macro] == "{":
         start_of_macro += 1
 
+    for i in range(start_of_macro, len(line)):
+        if line[i] not in ("?", "!"):
+            break
+        start_of_macro += 1
+
     for i in range(max(character, start_of_macro), len(line)):
         if line[i] in ("}", "%", ",", ";") or line[i].isspace():
             end_of_macro = i
