@@ -1,10 +1,16 @@
 import re
 from time import sleep
+from typing import Callable
 from lsprotocol.types import (
+    TEXT_DOCUMENT_COMPLETION,
     TEXT_DOCUMENT_DEFINITION,
     TEXT_DOCUMENT_DID_CHANGE,
     TEXT_DOCUMENT_DID_CLOSE,
     TEXT_DOCUMENT_DID_OPEN,
+    CompletionContext,
+    CompletionList,
+    CompletionParams,
+    CompletionTriggerKind,
     DefinitionParams,
     DidChangeTextDocumentParams,
     DidCloseTextDocumentParams,
@@ -240,3 +246,78 @@ def test_jump_to_definition(
             if expected_ranges
             else None
         )
+
+
+def _check_only_macros_completed(completion_list: CompletionList) -> None:
+    assert not any(not item.label.startswith("%") for item in completion_list.items)
+
+
+def _check_only_preamble_items(completion_list: CompletionList) -> None:
+    assert all(
+        item.label[0].isupper() and not item.label.startswith("%")
+        for item in completion_list.items
+    )
+
+
+def _keyword_in_completion_list(keyword: str, completion_list: CompletionList) -> bool:
+    return any(item.label == keyword for item in completion_list.items)
+
+
+def _check_everything_completed(completion_list: CompletionList) -> None:
+    assert all(
+        item.label[0].isupper() or item.label.startswith("%")
+        for item in completion_list.items
+    ) and _keyword_in_completion_list("BuildRequires", completion_list)
+
+
+def _check_probably_only_macros(completion_list: CompletionList) -> None:
+    assert all(not item.label.startswith("%") for item in completion_list.items)
+    assert not _keyword_in_completion_list("BuildRequires", completion_list)
+    assert _keyword_in_completion_list("prep", completion_list)
+
+
+@pytest.mark.parametrize(
+    "position,checker,ctx",
+    [
+        (Position(line=19, character=0), _check_only_macros_completed, None),
+        (
+            Position(0, 0),
+            _check_only_preamble_items,
+            CompletionContext(
+                trigger_character="B",
+                trigger_kind=CompletionTriggerKind.TriggerCharacter,
+            ),
+        ),
+        (Position(0, 0), _check_everything_completed, None),
+        (
+            Position(0, 0),
+            _check_probably_only_macros,
+            CompletionContext(
+                trigger_character="%",
+                trigger_kind=CompletionTriggerKind.TriggerCharacter,
+            ),
+        ),
+    ],
+)
+def test_autocomplete(
+    client_server: CLIENT_SERVER_T,
+    position: Position,
+    checker: Callable[[CompletionList], None],
+    ctx: CompletionContext | None,
+) -> None:
+    client, _ = client_server
+    open_spec_file(client, (path := "/home/me/specs/hello_world.spec"), _HELLO_SPEC)
+    sleep(0.5)
+
+    resp = client.lsp.send_request(
+        TEXT_DOCUMENT_COMPLETION,
+        CompletionParams(
+            text_document=TextDocumentIdentifier(uri=(uri := f"file://{path}")),
+            position=position,
+            context=ctx,
+        ),
+    ).result()
+
+    assert isinstance(resp, CompletionList) and not resp.is_incomplete
+
+    checker(resp)
