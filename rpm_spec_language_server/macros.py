@@ -37,6 +37,11 @@ def get_macro_string_at_position(line: str, character: int) -> str | None:
     if line[start_of_macro] == "{":
         start_of_macro += 1
 
+    for i in range(start_of_macro, len(line)):
+        if line[i] not in ("?", "!"):
+            break
+        start_of_macro += 1
+
     for i in range(max(character, start_of_macro), len(line)):
         if line[i] in ("}", "%", ",", ";") or line[i].isspace():
             end_of_macro = i
@@ -51,7 +56,7 @@ def get_macro_under_cursor(
     spec: Specfile,
     position: Position,
     macros_dump: list[Macro] | None = None,
-) -> Macro | None:
+) -> Macro | str | None:
     ...
 
 
@@ -61,7 +66,7 @@ def get_macro_under_cursor(
     text_document: TextDocumentIdentifier,
     position: Position,
     macros_dump: list[Macro] | None = None,
-) -> Macro | None:
+) -> Macro | str | None:
     ...
 
 
@@ -71,7 +76,19 @@ def get_macro_under_cursor(
     text_document: TextDocumentIdentifier | None = None,
     position: Position,
     macros_dump: list[Macro] | None = None,
-) -> Macro | None:
+) -> Macro | str | None:
+    """Find the macro in the text document or spec under the cursor. If the text
+    document is not a spec or there is no macro under the cursor, then ``None``
+    is returned. If the symbol under the cursor looks like a macro and it is
+    present in ``macros_dump``, then the respective ``Macro`` object is
+    returned. If the symbol under the cursor looks like a macro, but is not in
+    ``macros_dump``, then the symbol is returned as a string.
+
+    If ``macros_dump`` is ``None``, then the system rpm macros are
+    loaded. Passing a list (even an empty list) ensures that no macros are
+    loaded.
+
+    """
     if text_document is not None:
         url = urlparse(text_document.uri)
 
@@ -91,4 +108,4 @@ def get_macro_under_cursor(
             if macro.name == symbol:
                 return macro
 
-    return None
+        return symbol

@@ -15,6 +15,7 @@ from lsprotocol.types import (
     TEXT_DOCUMENT_HOVER,
     CompletionItem,
     CompletionList,
+    CompletionOptions,
     CompletionParams,
     DefinitionParams,
     DidChangeTextDocumentParams,
@@ -50,6 +51,21 @@ from rpm_spec_language_server.util import (
 
 
 class RpmSpecLanguageServer(LanguageServer):
+    _CONDITION_KEYWORDS = [
+        # from https://github.com/rpm-software-management/rpm/blob/7d3d9041af2d75c4709cf7a721daf5d1787cce14/build/rpmbuild_internal.h#L58
+        "%endif",
+        "%else",
+        "%if",
+        "%ifarch",
+        "%ifnarch",
+        "%ifos",
+        "%ifnos",
+        "%include",
+        "%elifarch",
+        "%elifos",
+        "%elif",
+    ]
+
     def __init__(self) -> None:
         super().__init__(name := "rpm_spec_language_server", metadata.version(name))
         self.spec_files: dict[str, SpecSections] = {}
@@ -58,12 +74,37 @@ class RpmSpecLanguageServer(LanguageServer):
             spec_md_from_rpm_db() or ""
         )
 
+    def macro_and_scriptlet_completions(
+        self, with_percent: bool
+    ) -> list[CompletionItem]:
+        return (
+            [
+                CompletionItem(
+                    label=key if with_percent else key[1:], documentation=value
+                )
+                for key, value in self.auto_complete_data.scriptlets.items()
+            ]
+            + [
+                CompletionItem(label=keyword if with_percent else keyword[1:])
+                for keyword in self._CONDITION_KEYWORDS
+            ]
+            + [
+                CompletionItem(label=f"%{macro.name}" if with_percent else macro.name)
+                for macro in self.macros
+            ]
+        )
+
     @property
-    def macro_and_scriptlet_completions(self) -> list[CompletionItem]:
-        return [
-            CompletionItem(label=key, documentation=value)
-            for key, value in self.auto_complete_data.scriptlets.items()
-        ] + [CompletionItem(label=f"%{macro.name}") for macro in self.macros]
+    def trigger_characters(self) -> list[str]:
+        return list(
+            set(
+                preamble_element[0]
+                for preamble_element in {
+                    **self.auto_complete_data.preamble,
+                    **self.auto_complete_data.dependencies,
+                }
+            ).union({"%"})
+        )
 
     def spec_sections_from_cache_or_file(
         self, text_document: TextDocumentIdentifier | TextDocumentItem
@@ -114,7 +155,10 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             server.spec_files[uri] = SpecSections.parse(spec)
             LOGGER.debug("Updated the spec for %s", uri)
 
-    @rpm_spec_server.feature(TEXT_DOCUMENT_COMPLETION)
+    @rpm_spec_server.feature(
+        TEXT_DOCUMENT_COMPLETION,
+        CompletionOptions(trigger_characters=rpm_spec_server.trigger_characters),
+    )
     def complete_macro_name(
         server: RpmSpecLanguageServer, params: CompletionParams
     ) -> CompletionList:
@@ -125,29 +169,72 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
         ):
             return CompletionList(is_incomplete=False, items=[])
 
+        trigger_char = (
+            None if params.context is None else params.context.trigger_character
+        )
+
         # we are *not* in the preamble or a %package foobar section
         # only complete macros
         if not (
             cur_sect := spec_sections.section_under_cursor(params.position)
         ) or not cur_sect.name.startswith("package"):
-            return CompletionList(
-                is_incomplete=False,
-                items=server.macro_and_scriptlet_completions,
+            # also if we have no completion context, just send macros and if we
+            # have it, only send them if this was triggered by a %
+            LOGGER.debug(
+                "Sending completions for outside the package section with trigger_character %s",
+                trigger_char,
             )
+            if (trigger_char and trigger_char == "%") or trigger_char is None:
+                return CompletionList(
+                    is_incomplete=False,
+                    items=server.macro_and_scriptlet_completions(
+                        with_percent=trigger_char is None
+                    ),
+                )
+            return CompletionList(is_incomplete=False, items=[])
 
         # we are in a package section => we can return preamble and dependency
         # tags as completion items too
-        return CompletionList(
-            is_incomplete=False,
-            items=[
-                CompletionItem(label=key, documentation=value)
-                for key, value in {
-                    **server.auto_complete_data.dependencies,
-                    **server.auto_complete_data.preamble,
-                }.items()
-            ]
-            + server.macro_and_scriptlet_completions,
-        )
+
+        # return everything if we have no trigger character
+        if trigger_char is None:
+            LOGGER.debug(
+                "Sending completions for %package/preamble without a trigger_character"
+            )
+            return CompletionList(
+                is_incomplete=False,
+                items=[
+                    CompletionItem(label=key, documentation=value)
+                    for key, value in {
+                        **server.auto_complete_data.dependencies,
+                        **server.auto_complete_data.preamble,
+                    }.items()
+                ]
+                + server.macro_and_scriptlet_completions(with_percent=True),
+            )
+
+        if trigger_char == "%":
+            LOGGER.debug("Sending completions for %package/premable triggered by %")
+            return CompletionList(
+                is_incomplete=False,
+                items=server.macro_and_scriptlet_completions(with_percent=False),
+            )
+        else:
+            LOGGER.debug(
+                "Sending completions for %package/premable triggered by %s",
+                trigger_char,
+            )
+            return CompletionList(
+                is_incomplete=False,
+                items=[
+                    CompletionItem(label=key, documentation=value)
+                    for key, value in {
+                        **server.auto_complete_data.dependencies,
+                        **server.auto_complete_data.preamble,
+                    }.items()
+                    if key.startswith(trigger_char)
+                ],
+            )
 
     @rpm_spec_server.feature(TEXT_DOCUMENT_DOCUMENT_SYMBOL)
     def spec_symbols(
@@ -177,11 +264,22 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             return None
 
         macro_under_cursor = get_macro_under_cursor(
-            spec=spec_sections.spec, position=param.position
+            spec=spec_sections.spec, position=param.position, macros_dump=server.macros
         )
 
         if not macro_under_cursor:
             return None
+
+        macro_name = (
+            macro_under_cursor
+            if isinstance(macro_under_cursor, str)
+            else macro_under_cursor.name
+        )
+        macro_level = (
+            MacroLevel.SPEC
+            if isinstance(macro_under_cursor, str)
+            else macro_under_cursor.level
+        )
 
         def find_macro_define_in_spec(file_contents: str) -> list[re.Match[str]]:
             """Searches for the definition of the macro ``macro_under_cursor``
@@ -190,7 +288,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
 
             """
             regex = re.compile(
-                rf"^([\t \f]*)(%(?:global|define))([\t \f]+)({macro_under_cursor.name})",
+                rf"^([\t \f]*)(%(?:global|define))([\t \f]+)({macro_name})",
                 re.MULTILINE,
             )
             return list(regex.finditer(file_contents))
@@ -201,7 +299,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
 
             """
             regex = re.compile(
-                rf"^([\t \f]*)(%{macro_under_cursor.name})([\t \f]+)(\S+)", re.MULTILINE
+                rf"^([\t \f]*)(%{macro_name})([\t \f]+)(\S+)", re.MULTILINE
             )
             return list(regex.finditer(file_contents))
 
@@ -209,7 +307,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             file_contents: str,
         ) -> list[re.Match[str]]:
             regex = re.compile(
-                rf"^([\t \f]*)({macro_under_cursor.name}):([\t \f]+)(\S*)",
+                rf"^([\t \f]*)({macro_name}):([\t \f]+)(\S*)",
                 re.MULTILINE | re.IGNORECASE,
             )
             if (m := regex.search(file_contents)) is None:
@@ -219,7 +317,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
         define_matches, file_uri = [], None
 
         # macro is defined in the spec file
-        if macro_under_cursor.level == MacroLevel.GLOBAL:
+        if macro_level == MacroLevel.GLOBAL:
             if not (
                 define_matches := find_macro_define_in_spec(str(spec_sections.spec))
             ):
@@ -228,7 +326,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             file_uri = param.text_document.uri
 
         # macro is something like %version, %release, etc.
-        elif macro_under_cursor.level == MacroLevel.SPEC:
+        elif macro_level == MacroLevel.SPEC:
             if not (
                 define_matches := find_preamble_definition_in_spec(
                     str(spec_sections.spec)
@@ -248,12 +346,12 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
         # If this yields nothing, then the macro most likely comes from the
         # builtin macros file of rpm (_should_ be in %_rpmconfigdir/macros) so
         # we retry the search in that file.
-        elif macro_under_cursor.level == MacroLevel.MACROFILES:
+        elif macro_level == MacroLevel.MACROFILES:
             MACROS_DIR = rpm.expandMacro("%_rpmmacrodir")
             ts = rpm.TransactionSet()
 
             # search in packages
-            for pkg in ts.dbMatch("provides", f"rpm_macro({macro_under_cursor.name})"):
+            for pkg in ts.dbMatch("provides", f"rpm_macro({macro_name})"):
                 for f in rpm.files(pkg):
                     if f.name.startswith(MACROS_DIR):
                         with open(f.name) as macro_file_f:
@@ -300,15 +398,23 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
     ) -> Hover | None:
         if spec_sections := server.spec_files.get(params.text_document.uri, None):
             macro = get_macro_under_cursor(
-                spec=spec_sections.spec, position=params.position
+                spec=spec_sections.spec,
+                position=params.position,
+                macros_dump=server.macros,
             )
         else:
             macro = get_macro_under_cursor(
-                text_document=params.text_document, position=params.position
+                text_document=params.text_document,
+                position=params.position,
+                macros_dump=server.macros,
             )
 
-        if not macro:
+        # not a macro or an unknown macro => cannot show a meaningful hover
+        if not macro or isinstance(macro, str):
             return None
+
+        if macro.level == MacroLevel.BUILTIN:
+            return Hover(contents="builtin")
 
         try:
             return Hover(contents=Macros.expand(macro.body))
