@@ -51,6 +51,21 @@ from rpm_spec_language_server.util import (
 
 
 class RpmSpecLanguageServer(LanguageServer):
+    _CONDITION_KEYWORDS = [
+        # from https://github.com/rpm-software-management/rpm/blob/7d3d9041af2d75c4709cf7a721daf5d1787cce14/build/rpmbuild_internal.h#L58
+        "%endif",
+        "%else",
+        "%if",
+        "%ifarch",
+        "%ifnarch",
+        "%ifos",
+        "%ifnos",
+        "%include",
+        "%elifarch",
+        "%elifos",
+        "%elif",
+    ]
+
     def __init__(self) -> None:
         super().__init__(name := "rpm_spec_language_server", metadata.version(name))
         self.spec_files: dict[str, SpecSections] = {}
@@ -62,13 +77,22 @@ class RpmSpecLanguageServer(LanguageServer):
     def macro_and_scriptlet_completions(
         self, with_percent: bool
     ) -> list[CompletionItem]:
-        return [
-            CompletionItem(label=key if with_percent else key[1:], documentation=value)
-            for key, value in self.auto_complete_data.scriptlets.items()
-        ] + [
-            CompletionItem(label=f"%{macro.name}" if with_percent else macro.name)
-            for macro in self.macros
-        ]
+        return (
+            [
+                CompletionItem(
+                    label=key if with_percent else key[1:], documentation=value
+                )
+                for key, value in self.auto_complete_data.scriptlets.items()
+            ]
+            + [
+                CompletionItem(label=keyword if with_percent else keyword[1:])
+                for keyword in self._CONDITION_KEYWORDS
+            ]
+            + [
+                CompletionItem(label=f"%{macro.name}" if with_percent else macro.name)
+                for macro in self.macros
+            ]
+        )
 
     @property
     def trigger_characters(self) -> list[str]:
