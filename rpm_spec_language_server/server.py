@@ -270,6 +270,17 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
         if not macro_under_cursor:
             return None
 
+        macro_name = (
+            macro_under_cursor
+            if isinstance(macro_under_cursor, str)
+            else macro_under_cursor.name
+        )
+        macro_level = (
+            MacroLevel.SPEC
+            if isinstance(macro_under_cursor, str)
+            else macro_under_cursor.level
+        )
+
         def find_macro_define_in_spec(file_contents: str) -> list[re.Match[str]]:
             """Searches for the definition of the macro ``macro_under_cursor``
             as it would appear in a spec file, i.e.: ``%global macro`` or
@@ -277,7 +288,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
 
             """
             regex = re.compile(
-                rf"^([\t \f]*)(%(?:global|define))([\t \f]+)({macro_under_cursor.name})",
+                rf"^([\t \f]*)(%(?:global|define))([\t \f]+)({macro_name})",
                 re.MULTILINE,
             )
             return list(regex.finditer(file_contents))
@@ -288,7 +299,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
 
             """
             regex = re.compile(
-                rf"^([\t \f]*)(%{macro_under_cursor.name})([\t \f]+)(\S+)", re.MULTILINE
+                rf"^([\t \f]*)(%{macro_name})([\t \f]+)(\S+)", re.MULTILINE
             )
             return list(regex.finditer(file_contents))
 
@@ -296,7 +307,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             file_contents: str,
         ) -> list[re.Match[str]]:
             regex = re.compile(
-                rf"^([\t \f]*)({macro_under_cursor.name}):([\t \f]+)(\S*)",
+                rf"^([\t \f]*)({macro_name}):([\t \f]+)(\S*)",
                 re.MULTILINE | re.IGNORECASE,
             )
             if (m := regex.search(file_contents)) is None:
@@ -306,7 +317,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
         define_matches, file_uri = [], None
 
         # macro is defined in the spec file
-        if macro_under_cursor.level == MacroLevel.GLOBAL:
+        if macro_level == MacroLevel.GLOBAL:
             if not (
                 define_matches := find_macro_define_in_spec(str(spec_sections.spec))
             ):
@@ -315,7 +326,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             file_uri = param.text_document.uri
 
         # macro is something like %version, %release, etc.
-        elif macro_under_cursor.level == MacroLevel.SPEC:
+        elif macro_level == MacroLevel.SPEC:
             if not (
                 define_matches := find_preamble_definition_in_spec(
                     str(spec_sections.spec)
@@ -335,12 +346,12 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
         # If this yields nothing, then the macro most likely comes from the
         # builtin macros file of rpm (_should_ be in %_rpmconfigdir/macros) so
         # we retry the search in that file.
-        elif macro_under_cursor.level == MacroLevel.MACROFILES:
+        elif macro_level == MacroLevel.MACROFILES:
             MACROS_DIR = rpm.expandMacro("%_rpmmacrodir")
             ts = rpm.TransactionSet()
 
             # search in packages
-            for pkg in ts.dbMatch("provides", f"rpm_macro({macro_under_cursor.name})"):
+            for pkg in ts.dbMatch("provides", f"rpm_macro({macro_name})"):
                 for f in rpm.files(pkg):
                     if f.name.startswith(MACROS_DIR):
                         with open(f.name) as macro_file_f:
@@ -394,7 +405,8 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
                 text_document=params.text_document, position=params.position
             )
 
-        if not macro:
+        # not a macro or an unknown macro => cannot show a meaningful hover
+        if not macro or isinstance(macro, str):
             return None
 
         try:
