@@ -11,6 +11,9 @@ from lsprotocol.types import (
 )
 from pygls.server import LanguageServer
 import pytest
+from typeguard import install_import_hook
+
+install_import_hook("rpm_spec_language_server")
 
 from rpm_spec_language_server.server import (
     RpmSpecLanguageServer,

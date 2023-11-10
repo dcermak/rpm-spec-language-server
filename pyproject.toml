@@ -24,6 +24,7 @@ Sphinx = ">=7"
 coverage = ">=7.3"
 ruff = ">=0.1.4"
 twine = ">=4.0.2"
+typeguard = ">=4.1.5"
 
 [tool.poetry.scripts]
 rpm_lsp_server = "rpm_spec_language_server.main:main"
