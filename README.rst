@@ -8,6 +8,9 @@ RPM Spec File Language Server
 .. |VSCode CI Status| image:: https://github.com/dcermak/rpm-spec-language-server/actions/workflows/vscode-extension.yml/badge.svg
    :target: https://github.com/dcermak/rpm-spec-language-server/actions/workflows/vscode-extension.yml
 
+.. |Code Coverage| image:: https://codecov.io/gh/dcermak/rpm-spec-language-server/graph/badge.svg?token=HN0KY22PM1
+   :target: https://codecov.io/gh/dcermak/rpm-spec-language-server
+
 This is a proof of concept implementation of a server implementing the `Language
 Server Protocol <https://microsoft.github.io/language-server-protocol/>`_ for
 RPM Spec files.
