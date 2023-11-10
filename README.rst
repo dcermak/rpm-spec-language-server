@@ -1,6 +1,34 @@
 RPM Spec File Language Server
 =============================
 
+
+.. |CI Status| image:: https://github.com/dcermak/rpm-spec-language-server/actions/workflows/ci.yml/badge.svg
+   :target: https://github.com/dcermak/rpm-spec-language-server/actions/workflows/ci.yml
+
+.. |VSCode CI Status| image:: https://github.com/dcermak/rpm-spec-language-server/actions/workflows/vscode-extension.yml/badge.svg
+   :target: https://github.com/dcermak/rpm-spec-language-server/actions/workflows/vscode-extension.yml
+
+This is a proof of concept implementation of a server implementing the `Language
+Server Protocol <https://microsoft.github.io/language-server-protocol/>`_ for
+RPM Spec files.
+
+Please share your feature requests with us by opening an `issue
+<https://github.com/dcermak/rpm-spec-language-server/issues/new/choose>`_,
+creating a `discussion
+<https://github.com/dcermak/rpm-spec-language-server/discussions/new/choose>`_
+or chat with us on matrix in `#rpm-spec-language-server:matrix.org
+<https://matrix.to/#/%23rpm-spec-language-server%3Amatrix.org?via=matrix.org&via=one.ems.host>`_.
+
+
+Supported LSP endpoints
+-----------------------
+
+- autocompletion of macro names, spec sections and preamble keywords
+- jump to macro definition
+- expand macros on hover
+- breadcrumbs/document sections
+
+
 Requirements
 ------------
 
