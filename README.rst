@@ -1,7 +1,7 @@
 RPM Spec File Language Server
 =============================
 
-|CI Status|  |VSCode CI Status|  |Code Coverage|
+|CI Status|  |VSCode CI Status|  |Code Coverage| |Chat on - Matrix|
 
 .. |CI Status| image:: https://github.com/dcermak/rpm-spec-language-server/actions/workflows/ci.yml/badge.svg
    :target: https://github.com/dcermak/rpm-spec-language-server/actions/workflows/ci.yml
@@ -11,6 +11,9 @@ RPM Spec File Language Server
 
 .. |Code Coverage| image:: https://codecov.io/gh/dcermak/rpm-spec-language-server/graph/badge.svg?token=HN0KY22PM1
    :target: https://codecov.io/gh/dcermak/rpm-spec-language-server
+
+.. |Chat on - Matrix| image:: https://img.shields.io/static/v1?label=Chat+on&message=Matrix&color=#32c954&logo=Matrix
+   :target: https://matrix.to/#/%23rpm-spec-language-server%3Amatrix.org?via=matrix.org&via=one.ems.host
 
 This is a proof of concept implementation of a server implementing the `Language
 Server Protocol <https://microsoft.github.io/language-server-protocol/>`_ for
