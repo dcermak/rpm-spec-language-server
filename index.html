@@ -125,6 +125,26 @@ the language server in tcp mode.</p>
 </pre></div>
 </div>
 </section>
+<section id="neovim-with-coc-nvim-plugin">
+<h2>Neovim with <a class="reference external" href="https://github.com/neoclide/coc.nvim">coc.nvim</a> plugin<a class="headerlink" href="#neovim-with-coc-nvim-plugin" title="Link to this heading">¶</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><a class="reference external" href="https://github.com/neoclide/coc.nvim">coc.nvim</a> is licensed under the non-free “activist” <a class="reference external" href="https://github.com/neoclide/coc.nvim/blob/master/LICENSE.md">Anti 996 License</a></p>
+</div>
+<p>Open nvim, run <code class="docutils literal notranslate"><span class="pre">:CocConfig</span></code>, and merge the following JSON into your
+configuration</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;languageserver&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;spec&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;command&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rpm_lsp_server&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;--stdio&quot;</span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;filetypes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;spec&quot;</span><span class="p">]</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
 </section>
 <section id="indices-and-tables">
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading">¶</a></h1>
