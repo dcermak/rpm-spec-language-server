@@ -124,3 +124,28 @@ Neovim with built-in LSP client
     }
 
     nvim_lsp['rpmspec'].setup({})
+
+Neovim with `coc.nvim`_ plugin
+------------------------------
+
+.. warning::
+   `coc.nvim`_ is licensed under the non-free "activist" `Anti 996 License`_
+
+Open nvim, run ``:CocConfig``\, and merge the following JSON into your
+configuration
+
+.. code-block:: json
+
+    {
+        "languageserver": {
+            "spec": {
+                "command": "rpm_lsp_server",
+                "args": ["--stdio"],
+                "filetypes": ["spec"]
+            }
+        }
+    }
+
+.. _coc.nvim: https://github.com/neoclide/coc.nvim
+
+.. _Anti 996 License: https://github.com/neoclide/coc.nvim/blob/master/LICENSE.md
