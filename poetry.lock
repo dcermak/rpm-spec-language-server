@@ -555,13 +555,13 @@ testing = ["pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)",
 
 [[package]]
 name = "lsprotocol"
-version = "2023.0.0b1"
+version = "2023.0.0"
 description = "Python implementation of the Language Server Protocol."
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "lsprotocol-2023.0.0b1-py3-none-any.whl", hash = "sha256:ade2cd0fa0ede7965698cb59cd05d3adbd19178fd73e83f72ef57a032fbb9d62"},
-    {file = "lsprotocol-2023.0.0b1.tar.gz", hash = "sha256:f7a2d4655cbd5639f373ddd1789807450c543341fa0a32b064ad30dbb9f510d4"},
+    {file = "lsprotocol-2023.0.0-py3-none-any.whl", hash = "sha256:e85fc87ee26c816adca9eb497bb3db1a7c79c477a11563626e712eaccf926a05"},
+    {file = "lsprotocol-2023.0.0.tar.gz", hash = "sha256:c9d92e12a3f4ed9317d3068226592860aab5357d93cf5b2451dc244eee8f35f2"},
 ]
 
 [package.dependencies]
@@ -844,18 +844,17 @@ files = [
 
 [[package]]
 name = "pygls"
-version = "1.1.2"
+version = "1.2.0"
 description = "A pythonic generic language server (pronounced like 'pie glass')"
 optional = false
 python-versions = ">=3.7.9,<4"
 files = [
-    {file = "pygls-1.1.2-py3-none-any.whl", hash = "sha256:783d29c93679bb6756772f2de9b9f53b1a6fdf3fba66aeca23e87aa8aab20ecf"},
-    {file = "pygls-1.1.2.tar.gz", hash = "sha256:93fe17c01fd03307774290e685e7fa25bc1411cd72f243ff33eef21927fd0ad5"},
+    {file = "pygls-1.2.0-py3-none-any.whl", hash = "sha256:e4ddf2fd27fd68a47644e25e7adc7e1810cf169b76f61f9e65ad6abae5814cf2"},
+    {file = "pygls-1.2.0.tar.gz", hash = "sha256:72ec4a3532741be1a933c686ed1e138b9948af174213745527a7c3ed3147a573"},
 ]
 
 [package.dependencies]
-lsprotocol = "2023.0.0b1"
-typeguard = ">=3.0.0,<5"
+lsprotocol = "2023.0.0"
 
 [package.extras]
 ws = ["websockets (>=11.0.3,<12.0.0)"]
@@ -1315,4 +1314,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "3607f181c1a546961f55290a4fdae7ac0583f3d88ddc80c7dc10137e7e66195a"
+content-hash = "252851dd7f4ed2eb9d910fcf15267f448802ecd407c3639fe53824d5d5a84730"
