@@ -28,6 +28,8 @@ from lsprotocol.types import (
     HoverParams,
     Location,
     LocationLink,
+    MarkupContent,
+    MarkupKind,
     Position,
     Range,
     SymbolInformation,
@@ -417,7 +419,10 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             return Hover(contents="builtin")
 
         try:
-            return Hover(contents=Macros.expand(macro.body))
+            expanded_macro = Macros.expand(macro.body)
+            formatted_macro = f"```bash\n{expanded_macro}\n```"
+            contents = MarkupContent(kind=MarkupKind.Markdown, value=formatted_macro)
+            return Hover(contents)
         except RPMException:
             return Hover(contents=macro.body)
 
