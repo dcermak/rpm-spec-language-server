@@ -104,26 +104,27 @@ Neovim with built-in LSP client
 
 .. code-block:: lua
 
-    local nvim_lsp = require('lspconfig')
+  local lspconfig = require("lspconfig")
+  local util = require("lspconfig.util")
+  local configs = require("lspconfig.configs")
+  configs.rpmspec = {
+      default_config = {
+        cmd = { 'python3', '-mrpm_spec_language_server', '--stdio' },
+        filetypes = { 'spec' },
+        single_file_support = true,
+        root_dir = util.find_git_ancestor,
+        settings = {},
+      },
+      docs = {
+        description = [[
+    https://github.com/dcermak/rpm-spec-language-server
+  
+    Language server protocol (LSP) support for RPM Spec files.
+    ]],
+      },
+  }
 
-    require('lspconfig.configs').rpmspec = {
-        default_config = {
-          cmd = { 'python3', '-mrpm_lsp_server', '--stdio' },
-          filetypes = { 'spec' },
-          single_file_support = true,
-          root_dir = util.find_git_ancestor,
-          settings = {},
-        },
-        docs = {
-          description = [[
-      https://github.com/dcermak/rpm-spec-language-server
-
-      Language server protocol (LSP) support for RPM Spec files.
-      ]],
-        },
-    }
-
-    nvim_lsp['rpmspec'].setup({})
+  lspconfig["rpmspec"].setup({})
 
 Neovim with `coc.nvim`_ plugin
 ------------------------------
