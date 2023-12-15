@@ -110,7 +110,7 @@ jobs:
           # python3 required for sqlite3 module
           zypper -n in python3-pip python3-rpm python3
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: wheel
           path: dist
@@ -157,7 +157,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: build
           path: ./build
@@ -195,7 +195,7 @@ jobs:
 
       # grab the previously built wheel for checking with twine
       # FIXME: implement twine check
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: wheel
           path: dist
