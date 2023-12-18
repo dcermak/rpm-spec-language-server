@@ -102,11 +102,12 @@ the language server in tcp mode.</p>
 </section>
 <section id="neovim-with-built-in-lsp-client">
 <h2>Neovim with built-in LSP client<a class="headerlink" href="#neovim-with-built-in-lsp-client" title="Link to this heading">¶</a></h2>
-<div class="highlight-lua notranslate"><div class="highlight"><pre><span></span><span class="kd">local</span> <span class="n">nvim_lsp</span> <span class="o">=</span> <span class="nb">require</span><span class="p">(</span><span class="s1">&#39;lspconfig&#39;</span><span class="p">)</span>
-
-<span class="nb">require</span><span class="p">(</span><span class="s1">&#39;lspconfig.configs&#39;</span><span class="p">).</span><span class="n">rpmspec</span> <span class="o">=</span> <span class="p">{</span>
+<div class="highlight-lua notranslate"><div class="highlight"><pre><span></span><span class="kd">local</span> <span class="n">lspconfig</span> <span class="o">=</span> <span class="nb">require</span><span class="p">(</span><span class="s2">&quot;lspconfig&quot;</span><span class="p">)</span>
+<span class="kd">local</span> <span class="n">util</span> <span class="o">=</span> <span class="nb">require</span><span class="p">(</span><span class="s2">&quot;lspconfig.util&quot;</span><span class="p">)</span>
+<span class="kd">local</span> <span class="n">configs</span> <span class="o">=</span> <span class="nb">require</span><span class="p">(</span><span class="s2">&quot;lspconfig.configs&quot;</span><span class="p">)</span>
+<span class="n">configs</span><span class="p">.</span><span class="n">rpmspec</span> <span class="o">=</span> <span class="p">{</span>
     <span class="n">default_config</span> <span class="o">=</span> <span class="p">{</span>
-      <span class="n">cmd</span> <span class="o">=</span> <span class="p">{</span> <span class="s1">&#39;python3&#39;</span><span class="p">,</span> <span class="s1">&#39;-mrpm_lsp_server&#39;</span><span class="p">,</span> <span class="s1">&#39;--stdio&#39;</span> <span class="p">},</span>
+      <span class="n">cmd</span> <span class="o">=</span> <span class="p">{</span> <span class="s1">&#39;python3&#39;</span><span class="p">,</span> <span class="s1">&#39;-mrpm_spec_language_server&#39;</span><span class="p">,</span> <span class="s1">&#39;--stdio&#39;</span> <span class="p">},</span>
       <span class="n">filetypes</span> <span class="o">=</span> <span class="p">{</span> <span class="s1">&#39;spec&#39;</span> <span class="p">},</span>
       <span class="n">single_file_support</span> <span class="o">=</span> <span class="kc">true</span><span class="p">,</span>
       <span class="n">root_dir</span> <span class="o">=</span> <span class="n">util</span><span class="p">.</span><span class="n">find_git_ancestor</span><span class="p">,</span>
@@ -121,7 +122,7 @@ the language server in tcp mode.</p>
     <span class="p">},</span>
 <span class="p">}</span>
 
-<span class="n">nvim_lsp</span><span class="p">[</span><span class="s1">&#39;rpmspec&#39;</span><span class="p">].</span><span class="n">setup</span><span class="p">({})</span>
+<span class="n">lspconfig</span><span class="p">[</span><span class="s2">&quot;rpmspec&quot;</span><span class="p">].</span><span class="n">setup</span><span class="p">({})</span>
 </pre></div>
 </div>
 </section>
