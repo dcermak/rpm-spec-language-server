@@ -1,10 +1,8 @@
 from pathlib import Path
 
 from lsprotocol.types import DocumentSymbol, Position, Range, SymbolKind
-from specfile.specfile import Specfile
-
 from rpm_spec_language_server.document_symbols import SpecSections
-
+from specfile.specfile import Specfile
 
 # from https://build.opensuse.org/package/view_file/devel:libraries:c_c++/notmuch/notmuch.spec?expand=1
 _NOTMUCH_SPEC = r"""#

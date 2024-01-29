@@ -2,6 +2,8 @@ import asyncio
 import os
 import threading
 from typing import Generator
+
+import pytest
 from lsprotocol.types import (
     EXIT,
     INITIALIZE,
@@ -10,12 +12,12 @@ from lsprotocol.types import (
     InitializeParams,
 )
 from pygls.server import LanguageServer
-import pytest
 from typeguard import install_import_hook
 
 install_import_hook("rpm_spec_language_server")
 
-from rpm_spec_language_server.server import (
+# we have to import rpm_spec_language_server *after* installing the import hook
+from rpm_spec_language_server.server import (  # noqa: E402
     RpmSpecLanguageServer,
     create_rpm_lang_server,
 )
