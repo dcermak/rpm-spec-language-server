@@ -25,7 +25,7 @@ jobs:
       - run: |
           pip install --upgrade poetry
           poetry install
-          poetry run black --check --diff .
+          poetry run ruff format --check --diff .
 
 
   ci:
