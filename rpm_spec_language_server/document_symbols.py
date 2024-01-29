@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+
 from lsprotocol.types import DocumentSymbol, Position, Range, SymbolKind
 from specfile.sections import Section
 from specfile.specfile import Specfile

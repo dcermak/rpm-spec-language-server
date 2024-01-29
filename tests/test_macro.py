@@ -1,5 +1,4 @@
 import pytest
-
 from rpm_spec_language_server.macros import get_macro_string_at_position
 
 

@@ -1,7 +1,7 @@
 import re
-from lsprotocol.types import Position
-import pytest
 
+import pytest
+from lsprotocol.types import Position
 from rpm_spec_language_server.util import position_from_match
 
 

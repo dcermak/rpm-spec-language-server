@@ -1,6 +1,8 @@
 import re
 from time import sleep
 from typing import Callable
+
+import pytest
 from lsprotocol.types import (
     TEXT_DOCUMENT_COMPLETION,
     TEXT_DOCUMENT_DEFINITION,
@@ -24,9 +26,8 @@ from lsprotocol.types import (
     VersionedTextDocumentIdentifier,
 )
 from pygls.server import LanguageServer
-import pytest
-from .conftest import CLIENT_SERVER_T
 
+from .conftest import CLIENT_SERVER_T
 
 _HELLO_SPEC = """Name:       hello-world
 Version:    1
@@ -99,7 +100,8 @@ def test_in_memory_spec_sections(client_server: CLIENT_SERVER_T) -> None:
                             + [""] * 3
                             + lines[7:]
                         )
-                        + "\n"  # trailing newline to mimic the behavior of Specfile.__str__()
+                        # trailing newline to mimic the behavior of Specfile.__str__()
+                        + "\n"
                     )
                 )
             ],
@@ -312,7 +314,7 @@ def test_autocomplete(
     resp = client.lsp.send_request(
         TEXT_DOCUMENT_COMPLETION,
         CompletionParams(
-            text_document=TextDocumentIdentifier(uri=(uri := f"file://{path}")),
+            text_document=TextDocumentIdentifier(uri=f"file://{path}"),
             position=position,
             context=ctx,
         ),

@@ -202,4 +202,4 @@ jobs:
 
       - run: poetry run mypy rpm_spec_language_server/
       - run: poetry run twine check dist/*whl
-      - run: poetry run ruff rpm_spec_language_server/
+      - run: poetry run ruff check

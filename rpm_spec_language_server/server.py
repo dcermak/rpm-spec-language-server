@@ -1,9 +1,8 @@
-import rpm
-import re
 import os.path
+import re
 from importlib import metadata
-from specfile.exceptions import RPMException
-from specfile.macros import MacroLevel, Macros
+
+import rpm
 from lsprotocol.types import (
     TEXT_DOCUMENT_COMPLETION,
     TEXT_DOCUMENT_DEFINITION,
@@ -37,6 +36,8 @@ from lsprotocol.types import (
     TextDocumentItem,
 )
 from pygls.server import LanguageServer
+from specfile.exceptions import RPMException
+from specfile.macros import MacroLevel, Macros
 
 from rpm_spec_language_server.document_symbols import SpecSections
 from rpm_spec_language_server.extract_docs import (
@@ -183,7 +184,8 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
             # also if we have no completion context, just send macros and if we
             # have it, only send them if this was triggered by a %
             LOGGER.debug(
-                "Sending completions for outside the package section with trigger_character %s",
+                "Sending completions for outside the package section with "
+                "trigger_character %s",
                 trigger_char,
             )
             if (trigger_char and trigger_char == "%") or trigger_char is None:
@@ -364,7 +366,8 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
                                 break
 
             # we didn't find a match
-            # => the macro can be from %_rpmconfigdir/macros (no provides generated for it)
+            # => the macro can be from %_rpmconfigdir/macros (no provides
+            #    generated for it)
             if not define_matches:
                 fname = rpm.expandMacro("%_rpmconfigdir") + "/macros"
                 with open(fname) as macro_file_f:

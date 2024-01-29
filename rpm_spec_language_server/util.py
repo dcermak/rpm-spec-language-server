@@ -1,5 +1,5 @@
-from functools import reduce
 import os.path
+from functools import reduce
 from re import Match
 from tempfile import TemporaryDirectory
 from urllib.parse import urlparse
