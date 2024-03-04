@@ -56,8 +56,7 @@ def get_macro_under_cursor(
     spec: Specfile,
     position: Position,
     macros_dump: list[Macro] | None = None,
-) -> Macro | str | None:
-    ...
+) -> Macro | str | None: ...
 
 
 @overload
@@ -66,8 +65,7 @@ def get_macro_under_cursor(
     text_document: TextDocumentIdentifier,
     position: Position,
     macros_dump: list[Macro] | None = None,
-) -> Macro | str | None:
-    ...
+) -> Macro | str | None: ...
 
 
 def get_macro_under_cursor(
