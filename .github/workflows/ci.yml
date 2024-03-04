@@ -48,7 +48,8 @@ jobs:
           # reinstall rpm to get spec.md
           zypper -n in -f rpm
           # python3 required for sqlite3 module
-          zypper -n in python3-pipx python3-rpm python3
+          # git required for codecov
+          zypper -n in python3-pipx python3-rpm python3 git
 
       - run: pipx install poetry
         env:
