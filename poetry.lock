@@ -1005,13 +1005,13 @@ testing = ["flexmock", "pytest"]
 
 [[package]]
 name = "sphinx"
-version = "7.3.4"
+version = "7.3.7"
 description = "Python documentation generator"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "sphinx-7.3.4-py3-none-any.whl", hash = "sha256:f67400c457599a6cfd967b681e093b43892b8df71596774b3128e31b6f0899eb"},
-    {file = "sphinx-7.3.4.tar.gz", hash = "sha256:614826a7cf76f0a4525875c3ed55e2c3618f906897cb7ad53511c5fedcbb35aa"},
+    {file = "sphinx-7.3.7-py3-none-any.whl", hash = "sha256:413f75440be4cacf328f580b4274ada4565fb2187d696a84970c23f77b64d8c3"},
+    {file = "sphinx-7.3.7.tar.gz", hash = "sha256:a4a7db75ed37531c05002d56ed6948d4c42f473a36f46e1382b0bd76ca9627bc"},
 ]
 
 [package.dependencies]
