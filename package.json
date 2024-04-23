@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.12",
-    "@types/vscode": ">=1.75",
+    "@types/vscode": ">=1.88",
     "@vscode/vsce": "^2",
     "typescript": "^5.4"
   },
