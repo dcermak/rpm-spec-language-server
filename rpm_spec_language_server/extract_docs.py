@@ -78,7 +78,7 @@ def get_preamble_or_dependencies_doc(keyword: str, lines: list[str]) -> str:
             break
 
         if entered_doc:
-            doc += line
+            doc += line.strip() + " "
 
     return doc.strip()
 
@@ -116,7 +116,7 @@ def get_build_scriptlets_doc(keyword: str, lines: list[str]) -> str:
             break
 
         if entered_doc:
-            doc += line
+            doc += line.strip() + " "
 
     return doc.strip()
 
