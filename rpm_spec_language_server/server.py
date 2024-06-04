@@ -42,7 +42,7 @@ from specfile.macros import MacroLevel, Macros
 from rpm_spec_language_server.document_symbols import SpecSections
 from rpm_spec_language_server.extract_docs import (
     create_autocompletion_documentation_from_spec_md,
-    spec_md_from_rpm_db,
+    retrieve_spec_md,
 )
 from rpm_spec_language_server.logging import LOGGER
 from rpm_spec_language_server.macros import get_macro_under_cursor
@@ -74,7 +74,7 @@ class RpmSpecLanguageServer(LanguageServer):
         self.spec_files: dict[str, SpecSections] = {}
         self.macros = Macros.dump()
         self.auto_complete_data = create_autocompletion_documentation_from_spec_md(
-            spec_md_from_rpm_db() or ""
+            retrieve_spec_md() or ""
         )
 
     def macro_and_scriptlet_completions(

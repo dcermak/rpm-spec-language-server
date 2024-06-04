@@ -11,6 +11,7 @@
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 import rpm
 
@@ -147,17 +148,50 @@ def create_autocompletion_documentation_from_spec_md(spec_md: str) -> AutoComple
     return AutoCompleteDoc(preamble, dependencies, build_scriptlets)
 
 
-def spec_md_from_rpm_db() -> str | None:
-    path = os.path.expanduser("~/.cache/rpm/spec.md")
-    if os.path.exists(path):
-        with open(path) as spec_md_f:
-            return spec_md_f.read(-1)
-    else:
-        ts = rpm.TransactionSet()
-        for pkg in ts.dbMatch("name", "rpm"):
-            for f in rpm.files(pkg):
-                if (path := f.name).endswith("spec.md"):
-                    with open(path) as spec_md_f:
-                        return spec_md_f.read(-1)
+def fetch_upstream_spec_md() -> str | None:
+    """Fetches :file:`spec.md` from the upstream `github repo
+    <https://github.com/rpm-software-management/rpm>`_ and returns its
+    contents. If the fetching fails, then `None` is returned.
+
+    """
+    import requests
+
+    try:
+        resp = requests.get(
+            "https://raw.githubusercontent.com/rpm-software-management/rpm/master/docs/manual/spec.md"
+        )
+        return resp.text
+    except requests.exceptions.RequestException:
+        pass
 
     return None
+
+
+def retrieve_spec_md() -> str | None:
+    """Retrieve :file:`spec.md` from either :file:`XDG_CACHE_HOME/rpm/spec.md`,
+    the ``rpm`` package on the system or from the upstream git repository.
+
+    If the :file:`spec.md` was fetched from the upstream git repository, then it
+    is saved in :file:`XDG_CACHE_HOME/rpm/spec.md`.
+
+    """
+    cache_dir = Path(os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache")))
+    path = (rpm_cache_dir := (cache_dir / "rpm")) / "spec.md"
+
+    if path.exists():
+        with open(path) as spec_md_f:
+            return spec_md_f.read(-1)
+
+    ts = rpm.TransactionSet()
+    for pkg in ts.dbMatch("name", "rpm"):
+        for f in rpm.files(pkg):
+            if (path := f.name).endswith("spec.md"):
+                with open(path) as spec_md_f:
+                    return spec_md_f.read(-1)
+
+    if not (spec_md := fetch_upstream_spec_md()):
+        return None
+
+    rpm_cache_dir.mkdir(parents=True, exist_ok=True)
+    path.write_text(spec_md)
+    return spec_md
