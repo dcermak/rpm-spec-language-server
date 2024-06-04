@@ -54,7 +54,9 @@ def split_document(document: list[str]) -> _SpecDocument:
     dependencies = document[dependencies_start:subsections_start]
     scriptlets = document[scriptlets_start:]
 
-    return _SpecDocument(preamble, dependencies, scriptlets)
+    return _SpecDocument(
+        preamble=preamble, dependencies=dependencies, build_scriptlets=scriptlets
+    )
 
 
 def get_preamble_or_dependencies_keywords(lines: list[str]) -> list[str]:
@@ -122,15 +124,20 @@ def get_build_scriptlets_doc(keyword: str, lines: list[str]) -> str:
 
 
 def create_autocompletion_documentation_from_spec_md(spec_md: str) -> AutoCompleteDoc:
+    """Given the upstream specfile document :file:`spec.md`, parse it and
+    extract the Preamble, Dependency description and scriptlets from it and
+    their corresponding documentation.
+
+    """
     spec = split_document(spec_md.splitlines())
 
     preamble_keywords = get_preamble_or_dependencies_keywords(spec.preamble)
     dependencies_keywords = get_preamble_or_dependencies_keywords(spec.dependencies)
     build_scriptlets_keywords = get_build_scriptlets_keywords(spec.build_scriptlets)
 
-    preamble = {}
-    dependencies = {}
-    build_scriptlets = {}
+    preamble: dict[str, str] = {}
+    dependencies: dict[str, str] = {}
+    build_scriptlets: dict[str, str] = {}
 
     for keyword in preamble_keywords:
         preamble[keyword] = get_preamble_or_dependencies_doc(keyword, spec.preamble)
@@ -145,7 +152,9 @@ def create_autocompletion_documentation_from_spec_md(spec_md: str) -> AutoComple
             keyword, spec.build_scriptlets
         )
 
-    return AutoCompleteDoc(preamble, dependencies, build_scriptlets)
+    return AutoCompleteDoc(
+        preamble=preamble, dependencies=dependencies, scriptlets=build_scriptlets
+    )
 
 
 def fetch_upstream_spec_md() -> str | None:
