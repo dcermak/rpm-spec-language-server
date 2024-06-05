@@ -10,6 +10,7 @@
 # There's no standard layout here so this is Ultra Custom
 
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -76,14 +77,17 @@ def get_preamble_or_dependencies_keywords(lines: list[str]) -> list[str]:
     return keywords
 
 
+_md_heading_re = re.compile(r"^[#]+ ")
+
+
 def get_preamble_or_dependencies_doc(keyword: str, lines: list[str]) -> str:
     entered_doc = False
     doc = ""
     for line in lines:
-        if (not entered_doc) and line.startswith("#### ") and (keyword in line):
+        if (not entered_doc) and _md_heading_re.match(line) and (keyword in line):
             entered_doc = True
             continue
-        if (entered_doc) and line.startswith("#### "):
+        if entered_doc and _md_heading_re.match(line):
             entered_doc = False
             break
 
@@ -117,11 +121,14 @@ def get_build_scriptlets_doc(keyword: str, lines: list[str]) -> str:
         if (
             (not entered_doc)
             and (keyword in line)
-            and ((line.startswith("###") or line.startswith(" * `%")) and ("%" in line))
+            and (
+                (_md_heading_re.match(line) or line.startswith(" * `%"))
+                and ("%" in line)
+            )
         ):
             entered_doc = True
             continue
-        if (entered_doc) and (line.startswith("###") or line.startswith(" * `%")):
+        if entered_doc and (_md_heading_re.match(line) or line.startswith(" * `%")):
             entered_doc = False
             break
 

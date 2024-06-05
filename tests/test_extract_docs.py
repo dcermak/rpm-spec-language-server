@@ -264,12 +264,6 @@ can just create the directory. It accepts a number of options:
 
 {_CHECK_DOC}
 
-### %clean (OBSOLETE)
-
-Packages should place all their temporaries inside their designated
-`%builddir`, which rpm will automatically clean up. Needing a package
-specific `%clean` section generally suggests flaws in the spec.
-
 ## Runtime scriptlets
 
 Runtime scriptlets are executed at the time of install and erase of the
@@ -518,3 +512,11 @@ def test_scriptlets_supplemented_via_specfile_constants() -> None:
     assert "%clean" in _auto_completion_data.scriptlets
     # documentation is empty
     assert not _auto_completion_data.scriptlets["%clean"]
+
+
+def test_section_headings_not_in_scriptlets() -> None:
+    assert "Basic scriptlets" not in _auto_completion_data.scriptlets
+    assert "Basic" not in _auto_completion_data.scriptlets
+
+    assert "Runtime scriptlets" not in _auto_completion_data.scriptlets
+    assert "Runtime" not in _auto_completion_data.scriptlets
