@@ -14,6 +14,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import rpm
+from specfile.constants import (
+    SCRIPT_SECTIONS,
+    SECTION_NAMES,
+    SIMPLE_SCRIPT_SECTIONS,
+    TAG_NAMES,
+)
 
 
 @dataclass(frozen=True)
@@ -155,6 +161,17 @@ def create_autocompletion_documentation_from_spec_md(spec_md: str) -> AutoComple
         )
 
     tags = {**preamble, **dependencies}
+
+    # add any missing tags from the specfile module
+    lowercase_tags_keys = [k.lower() for k in tags.keys()]
+    for tag in TAG_NAMES:
+        if tag not in lowercase_tags_keys:
+            tags[tag] = ""
+
+    # add missing scriptlets from specfile
+    for scriptlet in SECTION_NAMES | SIMPLE_SCRIPT_SECTIONS | SCRIPT_SECTIONS:
+        if (full_name := f"%{scriptlet}") not in build_scriptlets:
+            build_scriptlets[full_name] = ""
 
     return AutoCompleteDoc(tags=tags, scriptlets=build_scriptlets)
 

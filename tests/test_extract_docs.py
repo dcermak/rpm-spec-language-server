@@ -492,3 +492,29 @@ def test_spec_md_read_from_rpm_package(
 
     # just check that it is not None, the contents will be fetched from github
     assert retrieve_spec_md() == fake_spec_md_text
+
+
+def test_tags_supplemented_via_specfile_constants() -> None:
+    """Our culled down version of spec.md doesn't define most of the preamble
+    tags, so check that one of the missing tags is pulled in from
+    specfile.constants
+
+    """
+    # DistTag is not in spec.md => taken from specfile.constants
+    assert "DistTag" not in _auto_completion_data.tags
+    assert "disttag" in _auto_completion_data.tags
+
+    # Name is in spec.md => not taken from specfile.constants
+    assert "Name" in _auto_completion_data.tags
+    assert "name" not in _auto_completion_data.tags
+
+
+def test_scriptlets_supplemented_via_specfile_constants() -> None:
+    """Our culled down version of spec.md lacks some scriptlets, so check that
+    one of the missing scriptlets is pulled in from specfile.constants
+
+    """
+    # %check is not in spec.md => taken from specfile.constants
+    assert "%clean" in _auto_completion_data.scriptlets
+    # documentation is empty
+    assert not _auto_completion_data.scriptlets["%clean"]
