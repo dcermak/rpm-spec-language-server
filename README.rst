@@ -147,6 +147,29 @@ configuration
         }
     }
 
+
+Emacs with `lsp-mode.el`_
+-------------------------
+
+``lsp-mode`` has builtin support for the rpm-spec-language-server. All you have
+to do is to require ``'lsp-rpm-spec`` and launching ``lsp-mode``. With
+``use-package``, this can be implemented as follows utilizing ``rpm-spec-mode``:
+
+.. code-block:: lisp
+
+   (use-package lsp-mode
+     :ensure t
+     :commands (lsp lsp-deferred)
+     :hook ((rpm-spec-mode . lsp-deferred)))
+
+   (use-package rpm-spec-mode
+     :ensure t
+     :mode "\\.spec'"
+     :config (require 'lsp-rpm-spec))
+
+
 .. _coc.nvim: https://github.com/neoclide/coc.nvim
 
 .. _Anti 996 License: https://github.com/neoclide/coc.nvim/blob/master/LICENSE.md
+
+.. _lsp-mode.el: https://emacs-lsp.github.io/lsp-mode/
