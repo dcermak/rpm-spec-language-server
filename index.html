@@ -147,6 +147,23 @@ configuration</p>
 </pre></div>
 </div>
 </section>
+<section id="emacs-with-lsp-mode-el">
+<h2>Emacs with <a class="reference external" href="https://emacs-lsp.github.io/lsp-mode/">lsp-mode.el</a><a class="headerlink" href="#emacs-with-lsp-mode-el" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">lsp-mode</span></code> has builtin support for the rpm-spec-language-server. All you have
+to do is to require <code class="docutils literal notranslate"><span class="pre">'lsp-rpm-spec</span></code> and launching <code class="docutils literal notranslate"><span class="pre">lsp-mode</span></code>. With
+<code class="docutils literal notranslate"><span class="pre">use-package</span></code>, this can be implemented as follows utilizing <code class="docutils literal notranslate"><span class="pre">rpm-spec-mode</span></code>:</p>
+<div class="highlight-lisp notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="nb">use-package</span><span class="w"> </span><span class="nv">lsp-mode</span>
+<span class="w">  </span><span class="ss">:ensure</span><span class="w"> </span><span class="no">t</span>
+<span class="w">  </span><span class="ss">:commands</span><span class="w"> </span><span class="p">(</span><span class="nv">lsp</span><span class="w"> </span><span class="nv">lsp-deferred</span><span class="p">)</span>
+<span class="w">  </span><span class="ss">:hook</span><span class="w"> </span><span class="p">((</span><span class="nv">rpm-spec-mode</span><span class="w"> </span><span class="o">.</span><span class="w"> </span><span class="nv">lsp-deferred</span><span class="p">)))</span>
+
+<span class="p">(</span><span class="nb">use-package</span><span class="w"> </span><span class="nv">rpm-spec-mode</span>
+<span class="w">  </span><span class="ss">:ensure</span><span class="w"> </span><span class="no">t</span>
+<span class="w">  </span><span class="ss">:mode</span><span class="w"> </span><span class="s">&quot;\\.spec&#39;&quot;</span>
+<span class="w">  </span><span class="ss">:config</span><span class="w"> </span><span class="p">(</span><span class="nb">require</span><span class="w"> </span><span class="ss">&#39;lsp-rpm-spec</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
 </section>
 <section id="indices-and-tables">
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading">¶</a></h1>
