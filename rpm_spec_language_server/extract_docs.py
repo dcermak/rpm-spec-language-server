@@ -25,8 +25,10 @@ class _SpecDocument:
 
 @dataclass(frozen=True)
 class AutoCompleteDoc:
-    preamble: dict[str, str]
-    dependencies: dict[str, str]
+    #: Tags from the preamble and dependency identifiers
+    tags: dict[str, str]
+
+    #: scriptlets like %build, %setup, etc.
     scriptlets: dict[str, str]
 
 
@@ -152,9 +154,9 @@ def create_autocompletion_documentation_from_spec_md(spec_md: str) -> AutoComple
             keyword, spec.build_scriptlets
         )
 
-    return AutoCompleteDoc(
-        preamble=preamble, dependencies=dependencies, scriptlets=build_scriptlets
-    )
+    tags = {**preamble, **dependencies}
+
+    return AutoCompleteDoc(tags=tags, scriptlets=build_scriptlets)
 
 
 def fetch_upstream_spec_md() -> str | None:

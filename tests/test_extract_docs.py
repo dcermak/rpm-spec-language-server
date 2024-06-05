@@ -341,25 +341,13 @@ def _whitespace_cleanup(s: str) -> str:
 
 
 @pytest.mark.parametrize(
-    "preamble_name, preamble_doc",
+    "tag_name, tag_doc",
     (
         ("Name", _NAME_DOC),
         ("Patch", _PATCH_DOC),
         ("Icon", _ICON_DOC),
         ("AutoReqProv", ""),
         ("AutoReq", ""),
-    ),
-)
-def test_autocompletion_doc_creation(preamble_name: str, preamble_doc: str) -> None:
-    assert (preamble_name in _auto_completion_data.preamble) and (
-        _auto_completion_data.preamble[preamble_name]
-        == _whitespace_cleanup(preamble_doc)
-    )
-
-
-@pytest.mark.parametrize(
-    "dependency_name, dependency_doc",
-    (
         ("Provides", _PROVIDES_DOC),
         ("Obsoletes", _OBSOLETES_DOC),
         ("Conflicts", _CONFLICTS_DOC),
@@ -369,10 +357,9 @@ def test_autocompletion_doc_creation(preamble_name: str, preamble_doc: str) -> N
         ("Enhances", ""),
     ),
 )
-def test_dependencies_doc_creation(dependency_name: str, dependency_doc: str) -> None:
-    assert (dependency_name in _auto_completion_data.dependencies) and (
-        _auto_completion_data.dependencies[dependency_name]
-        == _whitespace_cleanup(dependency_doc)
+def test_tags_extraction_from_spec_md(tag_name: str, tag_doc: str) -> None:
+    assert (tag_name in _auto_completion_data.tags) and (
+        _auto_completion_data.tags[tag_name] == _whitespace_cleanup(tag_doc)
     )
 
 
@@ -408,8 +395,7 @@ def test_parse_upstream_spec_md() -> None:
 
     auto_complete_data = create_autocompletion_documentation_from_spec_md(spec_md)
 
-    assert auto_complete_data.dependencies
-    assert auto_complete_data.preamble
+    assert auto_complete_data.tags
     assert auto_complete_data.scriptlets
 
 
