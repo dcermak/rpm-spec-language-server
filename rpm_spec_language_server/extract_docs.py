@@ -194,13 +194,13 @@ def retrieve_spec_md() -> str | None:
     ts = rpm.TransactionSet()
     for pkg in ts.dbMatch("name", "rpm"):
         for f in rpm.files(pkg):
-            if (path := f.name).endswith("spec.md"):
-                with open(path) as spec_md_f:
-                    return spec_md_f.read(-1)
+            if (spec_md_location := f.name).endswith("spec.md"):
+                if (spec_md := Path(spec_md_location)).exists():
+                    return spec_md.read_text()
 
-    if not (spec_md := fetch_upstream_spec_md()):
+    if not (spec_md_contents := fetch_upstream_spec_md()):
         return None
 
     rpm_cache_dir.mkdir(parents=True, exist_ok=True)
-    path.write_text(spec_md)
-    return spec_md
+    path.write_text(spec_md_contents)
+    return spec_md_contents

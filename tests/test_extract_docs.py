@@ -1,6 +1,7 @@
 # trailing whitespaces are intentional and present upstream
 # ruff: noqa: W291
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -451,3 +452,57 @@ def test_spec_md_read_from_cache_first(
     monkeypatch.setattr(rpm, "TransactionSet", MockTransactionSet)
 
     assert retrieve_spec_md() == _SPEC_MD
+
+
+def test_spec_md_fetched_from_upstream_if_not_in_rpm_package(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+
+    class MockTransactionSet:
+        """Fake rpm.TransactionSet that simply fails to instantiate"""
+
+        def dbMatch(self, tag, pkg):
+            """returns a fake rpm package"""
+            return [(tag, pkg)]
+
+    def mock_rpm_files(pkg):
+        assert not (ret := (tmp_path / "spec.md")).exists()
+        return [ret]
+
+    monkeypatch.setattr(rpm, "TransactionSet", MockTransactionSet)
+    monkeypatch.setattr(rpm, "files", mock_rpm_files)
+
+    # just check that it is not None, the contents will be fetched from github
+    assert retrieve_spec_md()
+
+
+def test_spec_md_read_from_rpm_package(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+
+    (spec_md_p := (tmp_path / "spec.md")).write_text(
+        fake_spec_md_text := "This is a dummy text"
+    )
+
+    class MockTransactionSet:
+        """Fake rpm.TransactionSet that simply fails to instantiate"""
+
+        def dbMatch(self, tag, pkg):
+            """returns a fake rpm package"""
+            return [(tag, pkg)]
+
+    def mock_rpm_files(pkg):
+        @dataclass
+        class MockRpmFile:
+            name: str
+
+        assert spec_md_p.exists()
+        return [MockRpmFile(name=str(spec_md_p.absolute()))]
+
+    monkeypatch.setattr(rpm, "TransactionSet", MockTransactionSet)
+    monkeypatch.setattr(rpm, "files", mock_rpm_files)
+
+    # just check that it is not None, the contents will be fetched from github
+    assert retrieve_spec_md() == fake_spec_md_text
