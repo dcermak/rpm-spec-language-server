@@ -11,6 +11,7 @@
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 import rpm
 
@@ -53,7 +54,9 @@ def split_document(document: list[str]) -> _SpecDocument:
     dependencies = document[dependencies_start:subsections_start]
     scriptlets = document[scriptlets_start:]
 
-    return _SpecDocument(preamble, dependencies, scriptlets)
+    return _SpecDocument(
+        preamble=preamble, dependencies=dependencies, build_scriptlets=scriptlets
+    )
 
 
 def get_preamble_or_dependencies_keywords(lines: list[str]) -> list[str]:
@@ -77,7 +80,7 @@ def get_preamble_or_dependencies_doc(keyword: str, lines: list[str]) -> str:
             break
 
         if entered_doc:
-            doc += line
+            doc += line.strip() + " "
 
     return doc.strip()
 
@@ -115,21 +118,26 @@ def get_build_scriptlets_doc(keyword: str, lines: list[str]) -> str:
             break
 
         if entered_doc:
-            doc += line
+            doc += line.strip() + " "
 
     return doc.strip()
 
 
 def create_autocompletion_documentation_from_spec_md(spec_md: str) -> AutoCompleteDoc:
+    """Given the upstream specfile document :file:`spec.md`, parse it and
+    extract the Preamble, Dependency description and scriptlets from it and
+    their corresponding documentation.
+
+    """
     spec = split_document(spec_md.splitlines())
 
     preamble_keywords = get_preamble_or_dependencies_keywords(spec.preamble)
     dependencies_keywords = get_preamble_or_dependencies_keywords(spec.dependencies)
     build_scriptlets_keywords = get_build_scriptlets_keywords(spec.build_scriptlets)
 
-    preamble = {}
-    dependencies = {}
-    build_scriptlets = {}
+    preamble: dict[str, str] = {}
+    dependencies: dict[str, str] = {}
+    build_scriptlets: dict[str, str] = {}
 
     for keyword in preamble_keywords:
         preamble[keyword] = get_preamble_or_dependencies_doc(keyword, spec.preamble)
@@ -144,20 +152,55 @@ def create_autocompletion_documentation_from_spec_md(spec_md: str) -> AutoComple
             keyword, spec.build_scriptlets
         )
 
-    return AutoCompleteDoc(preamble, dependencies, build_scriptlets)
+    return AutoCompleteDoc(
+        preamble=preamble, dependencies=dependencies, scriptlets=build_scriptlets
+    )
 
 
-def spec_md_from_rpm_db() -> str | None:
-    path = os.path.expanduser("~/.cache/rpm/spec.md")
-    if os.path.exists(path):
-        with open(path) as spec_md_f:
-            return spec_md_f.read(-1)
-    else:
-        ts = rpm.TransactionSet()
-        for pkg in ts.dbMatch("name", "rpm"):
-            for f in rpm.files(pkg):
-                if (path := f.name).endswith("spec.md"):
-                    with open(path) as spec_md_f:
-                        return spec_md_f.read(-1)
+def fetch_upstream_spec_md() -> str | None:
+    """Fetches :file:`spec.md` from the upstream `github repo
+    <https://github.com/rpm-software-management/rpm>`_ and returns its
+    contents. If the fetching fails, then `None` is returned.
+
+    """
+    import requests
+
+    try:
+        resp = requests.get(
+            "https://raw.githubusercontent.com/rpm-software-management/rpm/master/docs/manual/spec.md"
+        )
+        return resp.text
+    except requests.exceptions.RequestException:
+        pass
 
     return None
+
+
+def retrieve_spec_md() -> str | None:
+    """Retrieve :file:`spec.md` from either :file:`XDG_CACHE_HOME/rpm/spec.md`,
+    the ``rpm`` package on the system or from the upstream git repository.
+
+    If the :file:`spec.md` was fetched from the upstream git repository, then it
+    is saved in :file:`XDG_CACHE_HOME/rpm/spec.md`.
+
+    """
+    cache_dir = Path(os.getenv("XDG_CACHE_HOME", os.path.expanduser("~/.cache")))
+    path = (rpm_cache_dir := (cache_dir / "rpm")) / "spec.md"
+
+    if path.exists():
+        with open(path) as spec_md_f:
+            return spec_md_f.read(-1)
+
+    ts = rpm.TransactionSet()
+    for pkg in ts.dbMatch("name", "rpm"):
+        for f in rpm.files(pkg):
+            if (spec_md_location := f.name).endswith("spec.md"):
+                if (spec_md := Path(spec_md_location)).exists():
+                    return spec_md.read_text()
+
+    if not (spec_md_contents := fetch_upstream_spec_md()):
+        return None
+
+    rpm_cache_dir.mkdir(parents=True, exist_ok=True)
+    path.write_text(spec_md_contents)
+    return spec_md_contents
