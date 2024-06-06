@@ -267,7 +267,12 @@ def _keyword_in_completion_list(keyword: str, completion_list: CompletionList) -
 
 def _check_everything_completed(completion_list: CompletionList) -> None:
     assert all(
-        item.label[0].isupper() or item.label.startswith("%")
+        # tag extracted from spec.md
+        item.label[0].isupper()
+        # or it's a scriptlet
+        or item.label.startswith("%")
+        # or it's a tag taken from specfile.constants and has no documentation
+        or (item.label[0].islower() and not item.documentation)
         for item in completion_list.items
     ) and _keyword_in_completion_list("BuildRequires", completion_list)
 

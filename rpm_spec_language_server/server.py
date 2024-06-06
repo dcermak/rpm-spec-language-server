@@ -99,15 +99,7 @@ class RpmSpecLanguageServer(LanguageServer):
 
     @property
     def trigger_characters(self) -> list[str]:
-        return list(
-            set(
-                preamble_element[0]
-                for preamble_element in {
-                    **self.auto_complete_data.preamble,
-                    **self.auto_complete_data.dependencies,
-                }
-            ).union({"%"})
-        )
+        return list(set(tag[0] for tag in self.auto_complete_data.tags).union({"%"}))
 
     def spec_sections_from_cache_or_file(
         self, text_document: TextDocumentIdentifier | TextDocumentItem
@@ -209,10 +201,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
                 is_incomplete=False,
                 items=[
                     CompletionItem(label=key, documentation=value)
-                    for key, value in {
-                        **server.auto_complete_data.dependencies,
-                        **server.auto_complete_data.preamble,
-                    }.items()
+                    for key, value in server.auto_complete_data.tags.items()
                 ]
                 + server.macro_and_scriptlet_completions(with_percent=True),
             )
@@ -232,10 +221,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
                 is_incomplete=False,
                 items=[
                     CompletionItem(label=key, documentation=value)
-                    for key, value in {
-                        **server.auto_complete_data.dependencies,
-                        **server.auto_complete_data.preamble,
-                    }.items()
+                    for key, value in server.auto_complete_data.tags.items()
                     if key.startswith(trigger_char)
                 ],
             )

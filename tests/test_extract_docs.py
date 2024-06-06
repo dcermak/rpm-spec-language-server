@@ -264,12 +264,6 @@ can just create the directory. It accepts a number of options:
 
 {_CHECK_DOC}
 
-### %clean (OBSOLETE)
-
-Packages should place all their temporaries inside their designated
-`%builddir`, which rpm will automatically clean up. Needing a package
-specific `%clean` section generally suggests flaws in the spec.
-
 ## Runtime scriptlets
 
 Runtime scriptlets are executed at the time of install and erase of the
@@ -341,25 +335,13 @@ def _whitespace_cleanup(s: str) -> str:
 
 
 @pytest.mark.parametrize(
-    "preamble_name, preamble_doc",
+    "tag_name, tag_doc",
     (
         ("Name", _NAME_DOC),
         ("Patch", _PATCH_DOC),
         ("Icon", _ICON_DOC),
         ("AutoReqProv", ""),
         ("AutoReq", ""),
-    ),
-)
-def test_autocompletion_doc_creation(preamble_name: str, preamble_doc: str) -> None:
-    assert (preamble_name in _auto_completion_data.preamble) and (
-        _auto_completion_data.preamble[preamble_name]
-        == _whitespace_cleanup(preamble_doc)
-    )
-
-
-@pytest.mark.parametrize(
-    "dependency_name, dependency_doc",
-    (
         ("Provides", _PROVIDES_DOC),
         ("Obsoletes", _OBSOLETES_DOC),
         ("Conflicts", _CONFLICTS_DOC),
@@ -369,10 +351,9 @@ def test_autocompletion_doc_creation(preamble_name: str, preamble_doc: str) -> N
         ("Enhances", ""),
     ),
 )
-def test_dependencies_doc_creation(dependency_name: str, dependency_doc: str) -> None:
-    assert (dependency_name in _auto_completion_data.dependencies) and (
-        _auto_completion_data.dependencies[dependency_name]
-        == _whitespace_cleanup(dependency_doc)
+def test_tags_extraction_from_spec_md(tag_name: str, tag_doc: str) -> None:
+    assert (tag_name in _auto_completion_data.tags) and (
+        _auto_completion_data.tags[tag_name] == _whitespace_cleanup(tag_doc)
     )
 
 
@@ -408,8 +389,7 @@ def test_parse_upstream_spec_md() -> None:
 
     auto_complete_data = create_autocompletion_documentation_from_spec_md(spec_md)
 
-    assert auto_complete_data.dependencies
-    assert auto_complete_data.preamble
+    assert auto_complete_data.tags
     assert auto_complete_data.scriptlets
 
 
@@ -506,3 +486,37 @@ def test_spec_md_read_from_rpm_package(
 
     # just check that it is not None, the contents will be fetched from github
     assert retrieve_spec_md() == fake_spec_md_text
+
+
+def test_tags_supplemented_via_specfile_constants() -> None:
+    """Our culled down version of spec.md doesn't define most of the preamble
+    tags, so check that one of the missing tags is pulled in from
+    specfile.constants
+
+    """
+    # DistTag is not in spec.md => taken from specfile.constants
+    assert "DistTag" not in _auto_completion_data.tags
+    assert "disttag" in _auto_completion_data.tags
+
+    # Name is in spec.md => not taken from specfile.constants
+    assert "Name" in _auto_completion_data.tags
+    assert "name" not in _auto_completion_data.tags
+
+
+def test_scriptlets_supplemented_via_specfile_constants() -> None:
+    """Our culled down version of spec.md lacks some scriptlets, so check that
+    one of the missing scriptlets is pulled in from specfile.constants
+
+    """
+    # %check is not in spec.md => taken from specfile.constants
+    assert "%clean" in _auto_completion_data.scriptlets
+    # documentation is empty
+    assert not _auto_completion_data.scriptlets["%clean"]
+
+
+def test_section_headings_not_in_scriptlets() -> None:
+    assert "Basic scriptlets" not in _auto_completion_data.scriptlets
+    assert "Basic" not in _auto_completion_data.scriptlets
+
+    assert "Runtime scriptlets" not in _auto_completion_data.scriptlets
+    assert "Runtime" not in _auto_completion_data.scriptlets

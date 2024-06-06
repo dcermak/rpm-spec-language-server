@@ -10,10 +10,17 @@
 # There's no standard layout here so this is Ultra Custom
 
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
 import rpm
+from specfile.constants import (
+    SCRIPT_SECTIONS,
+    SECTION_NAMES,
+    SIMPLE_SCRIPT_SECTIONS,
+    TAG_NAMES,
+)
 
 
 @dataclass(frozen=True)
@@ -25,8 +32,10 @@ class _SpecDocument:
 
 @dataclass(frozen=True)
 class AutoCompleteDoc:
-    preamble: dict[str, str]
-    dependencies: dict[str, str]
+    #: Tags from the preamble and dependency identifiers
+    tags: dict[str, str]
+
+    #: scriptlets like %build, %setup, etc.
     scriptlets: dict[str, str]
 
 
@@ -68,14 +77,17 @@ def get_preamble_or_dependencies_keywords(lines: list[str]) -> list[str]:
     return keywords
 
 
+_md_heading_re = re.compile(r"^[#]+ ")
+
+
 def get_preamble_or_dependencies_doc(keyword: str, lines: list[str]) -> str:
     entered_doc = False
     doc = ""
     for line in lines:
-        if (not entered_doc) and line.startswith("#### ") and (keyword in line):
+        if (not entered_doc) and _md_heading_re.match(line) and (keyword in line):
             entered_doc = True
             continue
-        if (entered_doc) and line.startswith("#### "):
+        if entered_doc and _md_heading_re.match(line):
             entered_doc = False
             break
 
@@ -109,11 +121,14 @@ def get_build_scriptlets_doc(keyword: str, lines: list[str]) -> str:
         if (
             (not entered_doc)
             and (keyword in line)
-            and ((line.startswith("###") or line.startswith(" * `%")) and ("%" in line))
+            and (
+                (_md_heading_re.match(line) or line.startswith(" * `%"))
+                and ("%" in line)
+            )
         ):
             entered_doc = True
             continue
-        if (entered_doc) and (line.startswith("###") or line.startswith(" * `%")):
+        if entered_doc and (_md_heading_re.match(line) or line.startswith(" * `%")):
             entered_doc = False
             break
 
@@ -152,9 +167,20 @@ def create_autocompletion_documentation_from_spec_md(spec_md: str) -> AutoComple
             keyword, spec.build_scriptlets
         )
 
-    return AutoCompleteDoc(
-        preamble=preamble, dependencies=dependencies, scriptlets=build_scriptlets
-    )
+    tags = {**preamble, **dependencies}
+
+    # add any missing tags from the specfile module
+    lowercase_tags_keys = [k.lower() for k in tags.keys()]
+    for tag in TAG_NAMES:
+        if tag not in lowercase_tags_keys:
+            tags[tag] = ""
+
+    # add missing scriptlets from specfile
+    for scriptlet in SECTION_NAMES | SIMPLE_SCRIPT_SECTIONS | SCRIPT_SECTIONS:
+        if (full_name := f"%{scriptlet}") not in build_scriptlets:
+            build_scriptlets[full_name] = ""
+
+    return AutoCompleteDoc(tags=tags, scriptlets=build_scriptlets)
 
 
 def fetch_upstream_spec_md() -> str | None:
