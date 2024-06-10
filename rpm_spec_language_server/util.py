@@ -2,7 +2,7 @@ import os.path
 from functools import reduce
 from re import Match
 from tempfile import TemporaryDirectory
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from lsprotocol.types import Position, TextDocumentIdentifier, TextDocumentItem
 from specfile.exceptions import RPMException
@@ -65,15 +65,16 @@ def spec_from_text_document(
 
     """
     url = urlparse(text_document.uri)
+    path = unquote(url.path)
 
-    if url.scheme != "file" or not url.path.endswith(".spec"):
+    if url.scheme != "file" or not path.endswith(".spec"):
         return None
 
     if not (text := getattr(text_document, "text", None)):
         try:
-            return Specfile(url.path)
+            return Specfile(path)
         except RPMException as rpm_exc:
-            LOGGER.debug("Failed to parse spec %s, got %s", url.path, rpm_exc)
+            LOGGER.debug("Failed to parse spec %s, got %s", path, rpm_exc)
             return None
 
-    return spec_from_text(text, os.path.basename(url.path))
+    return spec_from_text(text, os.path.basename(path))

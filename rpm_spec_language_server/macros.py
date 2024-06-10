@@ -1,5 +1,5 @@
 from typing import overload
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from lsprotocol.types import Position, TextDocumentIdentifier
 from specfile.macros import Macro, Macros
@@ -89,11 +89,12 @@ def get_macro_under_cursor(
     """
     if text_document is not None:
         url = urlparse(text_document.uri)
+        path = unquote(url.path)
 
-        if url.scheme != "file" or not url.path.endswith(".spec"):
+        if url.scheme != "file" or not path.endswith(".spec"):
             return None
 
-        spec = Specfile(url.path)
+        spec = Specfile(path)
 
     assert spec
 
