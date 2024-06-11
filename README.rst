@@ -67,6 +67,51 @@ file. It can either use the locally installed copy from the ``rpm`` package or
 the upstream github repository if neither of the previous options.
 
 
+Container Mode
+==============
+
+The rpm-spec-language-server is a server that supports an **experimental**
+container mode. In this mode, the server is launched inside a container with the
+package directory mounted into the running container. This allows you to have
+access to a different distribution than your current one.
+
+The container mode can currently handle only one package open. The RPM spec file
+**must** be in the top-level directory. Additionally, the server **must**
+communicate via TCP. This means that you might have to reconfigure your
+lsp-client, if it assumes to communicate via stdio.
+
+To enable the container mode with Podman, proceed as follows:
+
+.. code-block:: shell-session
+
+   $ cd ~/path/to/my/package
+   $ # ensure that the spec file is in the current working directory!
+   $ podman container runlabel run \
+         ghcr.io/dcermak/rpm-spec-lang-server:$distri
+
+where you replace ``$distri`` with one of ``tumbleweed``, ``leap-15.5``,
+``leap-15.6``, ``fedora`` or ``centos``.
+
+To use Docker, get the exact launch command as shown below:
+
+.. code-block:: shell-session
+
+   $ docker inspect -f '{{index .Config.Labels "run"}}' \
+         ghcr.io/dcermak/rpm-spec-lang-server:$distri | \
+         sed -e 's/podman/docker/' -e 's|$IMAGE|ghcr.io/dcermak/rpm-spec-lang-server:$distri|'
+
+In the example above, replace ``$distri`` with the desired distribution.
+
+Supported distributions/tags
+----------------------------
+
+- ``fedora``: based on ``fedora:latest``
+- ``tumbleweed``: based on ``tumbleweed:latest``
+- ``centos``: based on ``centos:stream9``
+- ``leap-15.5``: based on ``leap:15.5``
+- ``leap-15.6``: based on ``leap:15.6``
+
+
 Clients
 =======
 
