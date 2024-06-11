@@ -6,3 +6,4 @@
 /rpm-spec-language-server-*.vsix
 /coverage.xml
 /.coverage
+/build/
