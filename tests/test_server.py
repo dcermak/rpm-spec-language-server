@@ -1,4 +1,5 @@
 import re
+from os import getenv
 from time import sleep
 from typing import Callable, Optional
 
@@ -28,6 +29,8 @@ from lsprotocol.types import (
 from pygls.server import LanguageServer
 
 from .conftest import CLIENT_SERVER_T
+
+_SLEEP_TIMEOUT = float(getenv("TEST_SLEEP_TIMEOUT", 0.5))
 
 _HELLO_SPEC = """Name:       hello-world
 Version:    1
@@ -80,7 +83,7 @@ def open_spec_file(client: LanguageServer, path: str, file_contents: str) -> Non
 def test_in_memory_spec_sections(client_server: CLIENT_SERVER_T) -> None:
     client, server = client_server
     open_spec_file(client, (path := "/home/me/specs/hello_world.spec"), _HELLO_SPEC)
-    sleep(0.5)
+    sleep(_SLEEP_TIMEOUT)
 
     assert (
         server.spec_files
@@ -107,7 +110,7 @@ def test_in_memory_spec_sections(client_server: CLIENT_SERVER_T) -> None:
             ],
         ),
     )
-    sleep(0.5)
+    sleep(_SLEEP_TIMEOUT)
 
     assert str(server.spec_files[uri].spec) == new_content
 
@@ -115,7 +118,7 @@ def test_in_memory_spec_sections(client_server: CLIENT_SERVER_T) -> None:
         TEXT_DOCUMENT_DID_CLOSE,
         DidCloseTextDocumentParams(text_document=TextDocumentIdentifier(uri=uri)),
     )
-    sleep(0.5)
+    sleep(_SLEEP_TIMEOUT)
 
     assert uri not in server.spec_files
 
@@ -186,7 +189,7 @@ def test_jump_to_definition(
 ) -> None:
     client, _ = client_server
     open_spec_file(client, (path := "/home/me/specs/hello_world.spec"), _HELLO_SPEC)
-    sleep(0.5)
+    sleep(_SLEEP_TIMEOUT)
 
     resp = client.lsp.send_request(
         TEXT_DOCUMENT_DEFINITION,
@@ -214,7 +217,7 @@ def test_jump_to_definition(
             ],
         ),
     )
-    sleep(0.5)
+    sleep(_SLEEP_TIMEOUT)
 
     def two_lines_below(pos: Position) -> Position:
         return Position(line=pos.line + 2, character=pos.character)
@@ -314,7 +317,7 @@ def test_autocomplete(
 ) -> None:
     client, _ = client_server
     open_spec_file(client, (path := "/home/me/specs/hello_world.spec"), _HELLO_SPEC)
-    sleep(0.5)
+    sleep(_SLEEP_TIMEOUT)
 
     resp = client.lsp.send_request(
         TEXT_DOCUMENT_COMPLETION,
