@@ -168,6 +168,22 @@ to do is to require ``'lsp-rpm-spec`` and launching ``lsp-mode``. With
      :config (require 'lsp-rpm-spec))
 
 
+Emacs with `eglot.el`
+---------------------
+
+``eglot`` is the builtin LSP Client for Emacs. Support for the
+rpm-spec-language-server can be added by evaluating the following snippet
+(e.g. in your ``init.el`` or directly in the scratch buffer):
+
+.. code-block:: lisp
+
+   (require 'eglot)
+   (add-to-list 'eglot-server-programs
+                  '(rpm-spec-mode . ("localhost" 2087)))
+
+
+Then start the language server in tcp mode and invoke eglot via ``M-x eglot``.
+
 .. _coc.nvim: https://github.com/neoclide/coc.nvim
 
 .. _Anti 996 License: https://github.com/neoclide/coc.nvim/blob/master/LICENSE.md
