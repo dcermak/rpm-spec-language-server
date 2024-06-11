@@ -24,6 +24,13 @@ def main() -> None:
         action="store_true",
         help="Add typeguard runtime type checking",
     )
+    parser.add_argument(
+        "--ctr-mount-path",
+        type=str,
+        nargs=1,
+        help="Directory that is mounted ",
+        default=[""],
+    )
 
     args = parser.parse_args()
 
@@ -43,7 +50,7 @@ def main() -> None:
 
     LOGGER.setLevel(log_level)
 
-    server = create_rpm_lang_server()
+    server = create_rpm_lang_server(args.ctr_mount_path[0])
 
     if args.stdio:
         server.start_io()

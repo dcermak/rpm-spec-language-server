@@ -1,10 +1,8 @@
-import os.path
 from functools import reduce
 from re import Match
 from tempfile import TemporaryDirectory
-from urllib.parse import unquote, urlparse
 
-from lsprotocol.types import Position, TextDocumentIdentifier, TextDocumentItem
+from lsprotocol.types import Position
 from specfile.exceptions import RPMException
 from specfile.specfile import Specfile
 
@@ -50,31 +48,3 @@ def spec_from_text(spec_contents: str, file_name: str | None = None) -> Specfile
         except RPMException as rpm_exc:
             LOGGER.debug("Failed to parse spec, got %s", rpm_exc)
             return None
-
-
-def spec_from_text_document(
-    text_document: TextDocumentIdentifier | TextDocumentItem,
-) -> Specfile | None:
-    """Load a Specfile from a ``TextDocumentIdentifier`` or ``TextDocumentItem``.
-
-    For ``TextDocumentIdentifier``s, load the file from disk and create the
-    ``Specfile`` instance. For ``TextDocumentItem``s, load the spec from the
-    in-memory representation.
-
-    Returns ``None`` if the spec cannot be parsed.
-
-    """
-    url = urlparse(text_document.uri)
-    path = unquote(url.path)
-
-    if url.scheme != "file" or not path.endswith(".spec"):
-        return None
-
-    if not (text := getattr(text_document, "text", None)):
-        try:
-            return Specfile(path)
-        except RPMException as rpm_exc:
-            LOGGER.debug("Failed to parse spec %s, got %s", path, rpm_exc)
-            return None
-
-    return spec_from_text(text, os.path.basename(path))

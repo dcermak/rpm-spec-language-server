@@ -5,8 +5,8 @@ import pytest
 from lsprotocol.types import Position, TextDocumentIdentifier
 from rpm_spec_language_server.macros import (
     get_macro_string_at_position,
-    get_macro_under_cursor,
 )
+from rpm_spec_language_server.server import create_rpm_lang_server
 from specfile.macros import Macro, MacroLevel
 
 from tests.data import NOTMUCH_SPEC
@@ -38,7 +38,7 @@ def test_get_macro_under_cursor_with_special_path(tmp_path: Path):
     (spec_f := (dest_dir / "notmuch.spec")).touch()
     spec_f.write_text(NOTMUCH_SPEC)
 
-    macro = get_macro_under_cursor(
+    macro = create_rpm_lang_server().get_macro_under_cursor(
         text_document=TextDocumentIdentifier(uri=f"file://{quote(str(spec_f))}"),
         position=Position(line=86, character=31),
         macros_dump=[Macro("libversion", None, "5", MacroLevel.SPEC, True)],

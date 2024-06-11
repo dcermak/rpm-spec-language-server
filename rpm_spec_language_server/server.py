@@ -1,6 +1,8 @@
 import os.path
 import re
 from importlib import metadata
+from typing import overload
+from urllib.parse import unquote, urlparse
 
 import rpm
 from lsprotocol.types import (
@@ -37,7 +39,8 @@ from lsprotocol.types import (
 )
 from pygls.server import LanguageServer
 from specfile.exceptions import RPMException
-from specfile.macros import MacroLevel, Macros
+from specfile.macros import Macro, MacroLevel, Macros
+from specfile.specfile import Specfile
 
 from rpm_spec_language_server.document_symbols import SpecSections
 from rpm_spec_language_server.extract_docs import (
@@ -45,11 +48,12 @@ from rpm_spec_language_server.extract_docs import (
     retrieve_spec_md,
 )
 from rpm_spec_language_server.logging import LOGGER
-from rpm_spec_language_server.macros import get_macro_under_cursor
+from rpm_spec_language_server.macros import (
+    get_macro_string_at_position,
+)
 from rpm_spec_language_server.util import (
     position_from_match,
     spec_from_text,
-    spec_from_text_document,
 )
 
 
@@ -69,13 +73,14 @@ class RpmSpecLanguageServer(LanguageServer):
         "%elif",
     ]
 
-    def __init__(self) -> None:
+    def __init__(self, container_mount_path: str | None = None) -> None:
         super().__init__(name := "rpm_spec_language_server", metadata.version(name))
         self.spec_files: dict[str, SpecSections] = {}
         self.macros = Macros.dump()
         self.auto_complete_data = create_autocompletion_documentation_from_spec_md(
             retrieve_spec_md() or ""
         )
+        self._container_path: str = container_mount_path or ""
 
     def macro_and_scriptlet_completions(
         self, with_percent: bool
@@ -107,22 +112,126 @@ class RpmSpecLanguageServer(LanguageServer):
         if sections := self.spec_files.get((uri := text_document.uri), None):
             return sections
 
-        if not (spec := spec_from_text_document(text_document)):
+        if not (spec := self.spec_from_text_document(text_document)):
             return None
 
         self.spec_files[uri] = (sect := SpecSections.parse(spec))
         return sect
 
+    def _spec_path_from_uri(self, uri: str) -> str | None:
+        url = urlparse(uri)
+        path = unquote(url.path)
 
-def create_rpm_lang_server() -> RpmSpecLanguageServer:
-    rpm_spec_server = RpmSpecLanguageServer()
+        if url.scheme != "file" or not path.endswith(".spec"):
+            return None
+
+        if self._container_path:
+            return os.path.join(self._container_path, os.path.basename(path))
+
+        return path
+
+    def spec_from_text_document(
+        self,
+        text_document: TextDocumentIdentifier | TextDocumentItem,
+    ) -> Specfile | None:
+        """Load a Specfile from a ``TextDocumentIdentifier`` or ``TextDocumentItem``.
+
+        For ``TextDocumentIdentifier``s, load the file from disk and create the
+        ``Specfile`` instance. For ``TextDocumentItem``s, load the spec from the
+        in-memory representation.
+
+        Returns ``None`` if the spec cannot be parsed.
+
+        """
+        path = self._spec_path_from_uri(text_document.uri)
+
+        if not path:
+            return None
+
+        if not (text := getattr(text_document, "text", None)):
+            try:
+                return Specfile(path)
+            except RPMException as rpm_exc:
+                LOGGER.debug("Failed to parse spec %s, got %s", path, rpm_exc)
+                return None
+
+        return spec_from_text(text, os.path.basename(path))
+
+    @overload
+    def get_macro_under_cursor(
+        self,
+        *,
+        spec: Specfile,
+        position: Position,
+        macros_dump: list[Macro] | None = None,
+    ) -> Macro | str | None: ...
+
+    @overload
+    def get_macro_under_cursor(
+        self,
+        *,
+        text_document: TextDocumentIdentifier,
+        position: Position,
+        macros_dump: list[Macro] | None = None,
+    ) -> Macro | str | None: ...
+
+    def get_macro_under_cursor(
+        self,
+        *,
+        spec: Specfile | None = None,
+        text_document: TextDocumentIdentifier | None = None,
+        position: Position,
+        macros_dump: list[Macro] | None = None,
+    ) -> Macro | str | None:
+        """Find the macro in the text document or spec under the cursor. If the text
+        document is not a spec or there is no macro under the cursor, then ``None``
+        is returned. If the symbol under the cursor looks like a macro and it is
+        present in ``macros_dump``, then the respective ``Macro`` object is
+        returned. If the symbol under the cursor looks like a macro, but is not in
+        ``macros_dump``, then the symbol is returned as a string.
+
+        If ``macros_dump`` is ``None``, then the system rpm macros are
+        loaded. Passing a list (even an empty list) ensures that no macros are
+        loaded.
+
+        """
+        if text_document is not None:
+            path = self._spec_path_from_uri(text_document.uri)
+            if not path:
+                return None
+            try:
+                spec = Specfile(path)
+            except RPMException as rpm_exc:
+                LOGGER.debug("Failed to parse spec %s, got %s", path, rpm_exc)
+                return None
+
+        assert spec
+
+        with spec.lines() as lines:
+            symbol = get_macro_string_at_position(
+                lines[position.line], position.character
+            )
+            if not symbol:
+                return None
+
+            for macro in macros_dump if macros_dump is not None else Macros.dump():
+                if macro.name == symbol:
+                    return macro
+
+            return symbol
+
+
+def create_rpm_lang_server(
+    container_mount_path: str | None = None,
+) -> RpmSpecLanguageServer:
+    rpm_spec_server = RpmSpecLanguageServer(container_mount_path)
 
     def did_open_or_save(
         server: RpmSpecLanguageServer,
         param: DidOpenTextDocumentParams | DidSaveTextDocumentParams,
     ) -> None:
         LOGGER.debug("open or save event")
-        if not (spec := spec_from_text_document(param.text_document)):
+        if not (spec := server.spec_from_text_document(param.text_document)):
             return None
 
         LOGGER.debug("Saving parsed spec for %s", param.text_document.uri)
@@ -253,7 +362,7 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
         ):
             return None
 
-        macro_under_cursor = get_macro_under_cursor(
+        macro_under_cursor = server.get_macro_under_cursor(
             spec=spec_sections.spec, position=param.position, macros_dump=server.macros
         )
 
@@ -388,13 +497,13 @@ def create_rpm_lang_server() -> RpmSpecLanguageServer:
         server: RpmSpecLanguageServer, params: HoverParams
     ) -> Hover | None:
         if spec_sections := server.spec_files.get(params.text_document.uri, None):
-            macro = get_macro_under_cursor(
+            macro = server.get_macro_under_cursor(
                 spec=spec_sections.spec,
                 position=params.position,
                 macros_dump=server.macros,
             )
         else:
-            macro = get_macro_under_cursor(
+            macro = server.get_macro_under_cursor(
                 text_document=params.text_document,
                 position=params.position,
                 macros_dump=server.macros,
