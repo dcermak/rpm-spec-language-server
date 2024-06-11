@@ -39,7 +39,7 @@ Supported LSP endpoints
 Requirements
 ------------
 
-- Python >= 3.11
+- Python >= 3.9
 - `poetry <https://python-poetry.org/>`_
 
 

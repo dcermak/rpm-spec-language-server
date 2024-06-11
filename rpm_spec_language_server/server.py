@@ -1,7 +1,7 @@
 import os.path
 import re
 from importlib import metadata
-from typing import overload
+from typing import Optional, Union, overload
 from urllib.parse import unquote, urlparse
 
 import rpm
@@ -73,7 +73,7 @@ class RpmSpecLanguageServer(LanguageServer):
         "%elif",
     ]
 
-    def __init__(self, container_mount_path: str | None = None) -> None:
+    def __init__(self, container_mount_path: Optional[str] = None) -> None:
         super().__init__(name := "rpm_spec_language_server", metadata.version(name))
         self.spec_files: dict[str, SpecSections] = {}
         self.macros = Macros.dump()
@@ -107,8 +107,8 @@ class RpmSpecLanguageServer(LanguageServer):
         return list(set(tag[0] for tag in self.auto_complete_data.tags).union({"%"}))
 
     def spec_sections_from_cache_or_file(
-        self, text_document: TextDocumentIdentifier | TextDocumentItem
-    ) -> SpecSections | None:
+        self, text_document: Union[TextDocumentIdentifier, TextDocumentItem]
+    ) -> Optional[SpecSections]:
         if sections := self.spec_files.get((uri := text_document.uri), None):
             return sections
 
@@ -118,7 +118,7 @@ class RpmSpecLanguageServer(LanguageServer):
         self.spec_files[uri] = (sect := SpecSections.parse(spec))
         return sect
 
-    def _spec_path_from_uri(self, uri: str) -> str | None:
+    def _spec_path_from_uri(self, uri: str) -> Optional[str]:
         url = urlparse(uri)
         path = unquote(url.path)
 
@@ -132,8 +132,8 @@ class RpmSpecLanguageServer(LanguageServer):
 
     def spec_from_text_document(
         self,
-        text_document: TextDocumentIdentifier | TextDocumentItem,
-    ) -> Specfile | None:
+        text_document: Union[TextDocumentIdentifier, TextDocumentItem],
+    ) -> Optional[Specfile]:
         """Load a Specfile from a ``TextDocumentIdentifier`` or ``TextDocumentItem``.
 
         For ``TextDocumentIdentifier``s, load the file from disk and create the
@@ -163,8 +163,8 @@ class RpmSpecLanguageServer(LanguageServer):
         *,
         spec: Specfile,
         position: Position,
-        macros_dump: list[Macro] | None = None,
-    ) -> Macro | str | None: ...
+        macros_dump: Optional[list[Macro]] = None,
+    ) -> Optional[Union[Macro, str]]: ...
 
     @overload
     def get_macro_under_cursor(
@@ -172,17 +172,17 @@ class RpmSpecLanguageServer(LanguageServer):
         *,
         text_document: TextDocumentIdentifier,
         position: Position,
-        macros_dump: list[Macro] | None = None,
-    ) -> Macro | str | None: ...
+        macros_dump: Optional[list[Macro]] = None,
+    ) -> Optional[Union[Macro, str]]: ...
 
     def get_macro_under_cursor(
         self,
         *,
-        spec: Specfile | None = None,
-        text_document: TextDocumentIdentifier | None = None,
+        spec: Optional[Specfile] = None,
+        text_document: Optional[TextDocumentIdentifier] = None,
         position: Position,
-        macros_dump: list[Macro] | None = None,
-    ) -> Macro | str | None:
+        macros_dump: Optional[list[Macro]] = None,
+    ) -> Optional[Union[Macro, str]]:
         """Find the macro in the text document or spec under the cursor. If the text
         document is not a spec or there is no macro under the cursor, then ``None``
         is returned. If the symbol under the cursor looks like a macro and it is
@@ -222,13 +222,13 @@ class RpmSpecLanguageServer(LanguageServer):
 
 
 def create_rpm_lang_server(
-    container_mount_path: str | None = None,
+    container_mount_path: Optional[str] = None,
 ) -> RpmSpecLanguageServer:
     rpm_spec_server = RpmSpecLanguageServer(container_mount_path)
 
     def did_open_or_save(
         server: RpmSpecLanguageServer,
-        param: DidOpenTextDocumentParams | DidSaveTextDocumentParams,
+        param: Union[DidOpenTextDocumentParams, DidSaveTextDocumentParams],
     ) -> None:
         LOGGER.debug("open or save event")
         if not (spec := server.spec_from_text_document(param.text_document)):
@@ -339,7 +339,7 @@ def create_rpm_lang_server(
     def spec_symbols(
         server: RpmSpecLanguageServer,
         param: DocumentSymbolParams,
-    ) -> list[DocumentSymbol] | list[SymbolInformation] | None:
+    ) -> Optional[Union[list[DocumentSymbol], list[SymbolInformation]]]:
         if not (
             spec_sections := server.spec_sections_from_cache_or_file(
                 text_document=param.text_document
@@ -353,7 +353,7 @@ def create_rpm_lang_server(
     def find_macro_definition(
         server: RpmSpecLanguageServer,
         param: DefinitionParams,
-    ) -> Location | list[Location] | list[LocationLink] | None:
+    ) -> Optional[Union[Location, list[Location], list[LocationLink]]]:
         # get the in memory spec if available
         if not (
             spec_sections := server.spec_sections_from_cache_or_file(
@@ -495,7 +495,7 @@ def create_rpm_lang_server(
     @rpm_spec_server.feature(TEXT_DOCUMENT_HOVER)
     def expand_macro(
         server: RpmSpecLanguageServer, params: HoverParams
-    ) -> Hover | None:
+    ) -> Optional[Hover]:
         if spec_sections := server.spec_files.get(params.text_document.uri, None):
             macro = server.get_macro_under_cursor(
                 spec=spec_sections.spec,

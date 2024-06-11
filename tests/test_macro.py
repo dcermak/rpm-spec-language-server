@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 from urllib.parse import quote
 
 import pytest
@@ -25,7 +26,9 @@ from tests.data import NOTMUCH_SPEC
         ("%if %{!?fedora}", 6, "fedora"),
     ],
 )
-def test_macro_at_position(line: str, character: int, macro_string: str | None) -> None:
+def test_macro_at_position(
+    line: str, character: int, macro_string: Optional[str]
+) -> None:
     assert get_macro_string_at_position(line, character) == macro_string
 
 

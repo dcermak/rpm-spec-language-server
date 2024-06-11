@@ -13,6 +13,7 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 import rpm
 from specfile.constants import (
@@ -183,7 +184,7 @@ def create_autocompletion_documentation_from_spec_md(spec_md: str) -> AutoComple
     return AutoCompleteDoc(tags=tags, scriptlets=build_scriptlets)
 
 
-def fetch_upstream_spec_md() -> str | None:
+def fetch_upstream_spec_md() -> Optional[str]:
     """Fetches :file:`spec.md` from the upstream `github repo
     <https://github.com/rpm-software-management/rpm>`_ and returns its
     contents. If the fetching fails, then `None` is returned.
@@ -202,7 +203,7 @@ def fetch_upstream_spec_md() -> str | None:
     return None
 
 
-def retrieve_spec_md() -> str | None:
+def retrieve_spec_md() -> Optional[str]:
     """Retrieve :file:`spec.md` from either :file:`XDG_CACHE_HOME/rpm/spec.md`,
     the ``rpm`` package on the system or from the upstream git repository.
 

@@ -1,6 +1,7 @@
 from functools import reduce
 from re import Match
 from tempfile import TemporaryDirectory
+from typing import Optional
 
 from lsprotocol.types import Position
 from specfile.exceptions import RPMException
@@ -29,7 +30,9 @@ def position_from_match(re_match: Match[str]) -> Position:
     return Position(line=line_count_before_match, character=character_pos)
 
 
-def spec_from_text(spec_contents: str, file_name: str | None = None) -> Specfile | None:
+def spec_from_text(
+    spec_contents: str, file_name: Optional[str] = None
+) -> Optional[Specfile]:
     """Load a specfile with the supplied contents and return a ``Specfile``
     instance or ``None`` if the spec cannot be parsed.
 

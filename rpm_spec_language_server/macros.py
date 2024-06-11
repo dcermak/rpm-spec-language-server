@@ -1,4 +1,7 @@
-def get_macro_string_at_position(line: str, character: int) -> str | None:
+from typing import Optional
+
+
+def get_macro_string_at_position(line: str, character: int) -> Optional[str]:
     """Return the macro at the character position ``character`` from the line
     ``line`` and return it.
 

@@ -1,6 +1,6 @@
 import re
 from time import sleep
-from typing import Callable
+from typing import Callable, Optional
 
 import pytest
 from lsprotocol.types import (
@@ -181,8 +181,8 @@ assert bindir_define_line > 0, f"Could not find %_bindir in {_RPM_MACROS_FILE}"
 def test_jump_to_definition(
     client_server: CLIENT_SERVER_T,
     cursor_position: Position,
-    expected_ranges: list[Range] | None,
-    defined_in_uri: str | None,
+    expected_ranges: Optional[list[Range]],
+    defined_in_uri: Optional[str],
 ) -> None:
     client, _ = client_server
     open_spec_file(client, (path := "/home/me/specs/hello_world.spec"), _HELLO_SPEC)
@@ -310,7 +310,7 @@ def test_autocomplete(
     client_server: CLIENT_SERVER_T,
     position: Position,
     checker: Callable[[CompletionList], None],
-    ctx: CompletionContext | None,
+    ctx: Optional[CompletionContext],
 ) -> None:
     client, _ = client_server
     open_spec_file(client, (path := "/home/me/specs/hello_world.spec"), _HELLO_SPEC)
