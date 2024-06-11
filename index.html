@@ -74,7 +74,8 @@ module directly:</p>
 <p>The server requires the <a class="reference external" href="https://raw.githubusercontent.com/rpm-software-management/rpm/master/docs/manual/spec.md">spec.md</a>
 file. It can either use the locally installed copy from the <code class="docutils literal notranslate"><span class="pre">rpm</span></code> package or
 (if the documentation has not been installed) from a locally cached version in
-<code class="docutils literal notranslate"><span class="pre">~/.cache/rpm/spec.md</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">~/.cache/rpm/spec.md</span></code>. The language server will fetch the <code class="docutils literal notranslate"><span class="pre">spec.md</span></code> from
+the upstream github repository if neither of the previous options.</p>
 </section>
 </section>
 <section id="clients">
@@ -163,6 +164,18 @@ to do is to require <code class="docutils literal notranslate"><span class="pre"
 <span class="w">  </span><span class="ss">:config</span><span class="w"> </span><span class="p">(</span><span class="nb">require</span><span class="w"> </span><span class="ss">&#39;lsp-rpm-spec</span><span class="p">))</span>
 </pre></div>
 </div>
+</section>
+<section id="emacs-with-eglot-el">
+<h2>Emacs with <cite>eglot.el</cite><a class="headerlink" href="#emacs-with-eglot-el" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">eglot</span></code> is the builtin LSP Client for Emacs. Support for the
+rpm-spec-language-server can be added by evaluating the following snippet
+(e.g. in your <code class="docutils literal notranslate"><span class="pre">init.el</span></code> or directly in the scratch buffer):</p>
+<div class="highlight-lisp notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="nb">require</span><span class="w"> </span><span class="ss">&#39;eglot</span><span class="p">)</span>
+<span class="p">(</span><span class="nv">add-to-list</span><span class="w"> </span><span class="ss">&#39;eglot-server-programs</span>
+<span class="w">               </span><span class="o">&#39;</span><span class="p">(</span><span class="nv">rpm-spec-mode</span><span class="w"> </span><span class="o">.</span><span class="w"> </span><span class="p">(</span><span class="s">&quot;localhost&quot;</span><span class="w"> </span><span class="mi">2087</span><span class="p">)))</span>
+</pre></div>
+</div>
+<p>Then start the language server in tcp mode and invoke eglot via <code class="docutils literal notranslate"><span class="pre">M-x</span> <span class="pre">eglot</span></code>.</p>
 </section>
 </section>
 <section id="indices-and-tables">
