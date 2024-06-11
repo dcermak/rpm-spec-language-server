@@ -63,7 +63,8 @@ The server requires the `spec.md
 <https://raw.githubusercontent.com/rpm-software-management/rpm/master/docs/manual/spec.md>`_
 file. It can either use the locally installed copy from the ``rpm`` package or
 (if the documentation has not been installed) from a locally cached version in
-``~/.cache/rpm/spec.md``.
+``~/.cache/rpm/spec.md``. The language server will fetch the ``spec.md`` from
+the upstream github repository if neither of the previous options.
 
 
 Clients
@@ -118,7 +119,7 @@ Neovim with built-in LSP client
       docs = {
         description = [[
     https://github.com/dcermak/rpm-spec-language-server
-  
+
     Language server protocol (LSP) support for RPM Spec files.
     ]],
       },
@@ -167,6 +168,22 @@ to do is to require ``'lsp-rpm-spec`` and launching ``lsp-mode``. With
      :mode "\\.spec'"
      :config (require 'lsp-rpm-spec))
 
+
+Emacs with `eglot.el`
+---------------------
+
+``eglot`` is the builtin LSP Client for Emacs. Support for the
+rpm-spec-language-server can be added by evaluating the following snippet
+(e.g. in your ``init.el`` or directly in the scratch buffer):
+
+.. code-block:: lisp
+
+   (require 'eglot)
+   (add-to-list 'eglot-server-programs
+                  '(rpm-spec-mode . ("localhost" 2087)))
+
+
+Then start the language server in tcp mode and invoke eglot via ``M-x eglot``.
 
 .. _coc.nvim: https://github.com/neoclide/coc.nvim
 
