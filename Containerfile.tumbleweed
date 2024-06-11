@@ -1,0 +1,45 @@
+FROM registry.opensuse.org/opensuse/tumbleweed-dnf as macros-installer
+
+RUN set -euo pipefail; \
+    # for xargs + poetry + pip
+    dnf -y install findutils python3-poetry python3-pip; \
+    # install all packages providing a rpm macro, but filter out all packages with conflicts
+    dnf rq --whatprovides 'rpm_macro(*)'| sed -e '/llvm/d' -e '/openmpi/d' -e '/fcitx/d' -e '/mvapich/d' -e '/mpich/d' -e '/cmake-mini/d'| xargs dnf -y install; \
+    # install the previously filtered out packages
+    dnf -y install llvm-devel openmpi-macros-provider fcitx-devel cmake mvapich2-hpc-macros-devel mvapich3-hpc-macros-devel;
+
+
+WORKDIR /build/
+
+COPY pyproject.toml poetry.lock .
+
+RUN poetry install --no-root
+
+COPY . .
+
+ENV TEST_SLEEP_TIMEOUT=2
+RUN set -euo pipefail; \
+    poetry install --only-root; \
+    poetry build; \
+    poetry run pytest -vv
+
+
+FROM registry.opensuse.org/opensuse/tumbleweed-dnf
+ARG SERVER_VERSION=0.0.1
+
+COPY --from=macros-installer /build/dist/rpm_spec_language_server-${SERVER_VERSION}-py3-none-any.whl .
+COPY --from=macros-installer /usr/lib/rpm/ /usr/lib/rpm
+
+RUN set -euo pipefail; \
+    dnf -y install python3-pip; \
+    pip install --break-system-packages rpm_spec_language_server-${SERVER_VERSION}-py3-none-any.whl
+
+WORKDIR /src/
+
+EXPOSE 2087
+
+LABEL run "podman run --rm -it -p 2087:2087 -v .:/src/:z \$IMAGE"
+LABEL org.opencontainers.image.source="https://github.com/dcermak/rpm-spec-language-server/"
+MAINTAINER Dan Čermák <dcermak@suse.com>
+
+ENTRYPOINT ["/usr/bin/python3", "-m", "rpm_spec_language_server", "-vvv", "--ctr-mount-path=/src/", "--host=0.0.0.0"]
