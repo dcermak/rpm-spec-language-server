@@ -63,7 +63,8 @@ The server requires the `spec.md
 <https://raw.githubusercontent.com/rpm-software-management/rpm/master/docs/manual/spec.md>`_
 file. It can either use the locally installed copy from the ``rpm`` package or
 (if the documentation has not been installed) from a locally cached version in
-``~/.cache/rpm/spec.md``.
+``~/.cache/rpm/spec.md``. The language server will fetch the ``spec.md`` from
+the upstream github repository if neither of the previous options.
 
 
 Clients
@@ -118,7 +119,7 @@ Neovim with built-in LSP client
       docs = {
         description = [[
     https://github.com/dcermak/rpm-spec-language-server
-  
+
     Language server protocol (LSP) support for RPM Spec files.
     ]],
       },
