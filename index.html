@@ -53,7 +53,7 @@ or chat with us on matrix in <a class="reference external" href="https://matrix.
 <section id="requirements">
 <h2>Requirements<a class="headerlink" href="#requirements" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p>Python &gt;= 3.11</p></li>
+<li><p>Python &gt;= 3.9</p></li>
 <li><p><a class="reference external" href="https://python-poetry.org/">poetry</a></p></li>
 </ul>
 </section>
@@ -76,6 +76,43 @@ file. It can either use the locally installed copy from the <code class="docutil
 (if the documentation has not been installed) from a locally cached version in
 <code class="docutils literal notranslate"><span class="pre">~/.cache/rpm/spec.md</span></code>. The language server will fetch the <code class="docutils literal notranslate"><span class="pre">spec.md</span></code> from
 the upstream github repository if neither of the previous options.</p>
+</section>
+</section>
+<section id="container-mode">
+<h1>Container Mode<a class="headerlink" href="#container-mode" title="Link to this heading">¶</a></h1>
+<p>The rpm-spec-language-server is a server that supports an <strong>experimental</strong>
+container mode. In this mode, the server is launched inside a container with the
+package directory mounted into the running container. This allows you to have
+access to a different distribution than your current one.</p>
+<p>The container mode can currently handle only one package open. The RPM spec file
+<strong>must</strong> be in the top-level directory. Additionally, the server <strong>must</strong>
+communicate via TCP. This means that you might have to reconfigure your
+lsp-client, if it assumes to communicate via stdio.</p>
+<p>To enable the container mode with Podman, proceed as follows:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>~/path/to/my/package
+<span class="gp">$ </span><span class="c1"># ensure that the spec file is in the current working directory!</span>
+<span class="gp">$ </span>podman<span class="w"> </span>container<span class="w"> </span>runlabel<span class="w"> </span>run<span class="w"> </span><span class="se">\</span>
+<span class="w">      </span>ghcr.io/dcermak/rpm-spec-lang-server:<span class="nv">$distri</span>
+</pre></div>
+</div>
+<p>where you replace <code class="docutils literal notranslate"><span class="pre">$distri</span></code> with one of <code class="docutils literal notranslate"><span class="pre">tumbleweed</span></code>, <code class="docutils literal notranslate"><span class="pre">leap-15.5</span></code>,
+<code class="docutils literal notranslate"><span class="pre">leap-15.6</span></code>, <code class="docutils literal notranslate"><span class="pre">fedora</span></code> or <code class="docutils literal notranslate"><span class="pre">centos</span></code>.</p>
+<p>To use Docker, get the exact launch command as shown below:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>docker<span class="w"> </span>inspect<span class="w"> </span>-f<span class="w"> </span><span class="s1">&#39;{{index .Config.Labels &quot;run&quot;}}&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">      </span>ghcr.io/dcermak/rpm-spec-lang-server:<span class="nv">$distri</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="se">\</span>
+<span class="w">      </span>sed<span class="w"> </span>-e<span class="w"> </span><span class="s1">&#39;s/podman/docker/&#39;</span><span class="w"> </span>-e<span class="w"> </span><span class="s1">&#39;s|$IMAGE|ghcr.io/dcermak/rpm-spec-lang-server:$distri|&#39;</span>
+</pre></div>
+</div>
+<p>In the example above, replace <code class="docutils literal notranslate"><span class="pre">$distri</span></code> with the desired distribution.</p>
+<section id="supported-distributions-tags">
+<h2>Supported distributions/tags<a class="headerlink" href="#supported-distributions-tags" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">fedora</span></code>: based on <code class="docutils literal notranslate"><span class="pre">fedora:latest</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tumbleweed</span></code>: based on <code class="docutils literal notranslate"><span class="pre">tumbleweed:latest</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">centos</span></code>: based on <code class="docutils literal notranslate"><span class="pre">centos:stream9</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">leap-15.5</span></code>: based on <code class="docutils literal notranslate"><span class="pre">leap:15.5</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">leap-15.6</span></code>: based on <code class="docutils literal notranslate"><span class="pre">leap:15.6</span></code></p></li>
+</ul>
 </section>
 </section>
 <section id="clients">
