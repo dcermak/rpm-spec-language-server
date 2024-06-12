@@ -41,7 +41,10 @@ COPY --from=macros-installer /usr/lib/rpm/ /usr/lib/rpm
 
 RUN set -euo pipefail; \
     dnf -y install python311-pip; \
-    pip install rpm_spec_language_server-${SERVER_VERSION}-py3-none-any.whl
+    pip install rpm_spec_language_server-${SERVER_VERSION}-py3-none-any.whl; \
+    # HACK: the rpm shim doesn't work on Leap so just use the system package
+    pip uninstall --yes rpm; \
+    dnf -y install python311-rpm;
 
 WORKDIR /src/
 
