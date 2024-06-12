@@ -1,0 +1,58 @@
+---
+name: Build the container image
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    name: Build and publish the container with docker
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distri: leap-15.5
+            build_args: |
+              "SERVER_VERSION=0.0.1"
+              "LEAP_VERSION=15.5"
+            suffix: leap
+          - distri: leap-15.6
+            build_args: |
+              "SERVER_VERSION=0.0.1"
+              "LEAP_VERSION=15.6"
+            suffix: leap
+        build_args:
+          - |
+            "SERVER_VERSION=0.0.1"
+        suffix:
+          - ""
+        distri:
+          - centos
+          - tumbleweed
+          - fedora
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          file: "Containerfile.${{ matrix.suffix || matrix.distri }}"
+          push: ${{ contains(github.ref, 'refs/heads/main') || contains(github.ref, 'refs/tags/') }}
+          build-args: ${{ matrix.build_args }}
+          tags: |
+            ghcr.io/dcermak/rpm-spec-language-server:${{ matrix.distri }}

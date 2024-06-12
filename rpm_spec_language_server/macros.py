@@ -1,12 +1,7 @@
-from typing import overload
-from urllib.parse import unquote, urlparse
-
-from lsprotocol.types import Position, TextDocumentIdentifier
-from specfile.macros import Macro, Macros
-from specfile.specfile import Specfile
+from typing import Optional
 
 
-def get_macro_string_at_position(line: str, character: int) -> str | None:
+def get_macro_string_at_position(line: str, character: int) -> Optional[str]:
     """Return the macro at the character position ``character`` from the line
     ``line`` and return it.
 
@@ -48,63 +43,3 @@ def get_macro_string_at_position(line: str, character: int) -> str | None:
             break
 
     return line[start_of_macro:end_of_macro]
-
-
-@overload
-def get_macro_under_cursor(
-    *,
-    spec: Specfile,
-    position: Position,
-    macros_dump: list[Macro] | None = None,
-) -> Macro | str | None: ...
-
-
-@overload
-def get_macro_under_cursor(
-    *,
-    text_document: TextDocumentIdentifier,
-    position: Position,
-    macros_dump: list[Macro] | None = None,
-) -> Macro | str | None: ...
-
-
-def get_macro_under_cursor(
-    *,
-    spec: Specfile | None = None,
-    text_document: TextDocumentIdentifier | None = None,
-    position: Position,
-    macros_dump: list[Macro] | None = None,
-) -> Macro | str | None:
-    """Find the macro in the text document or spec under the cursor. If the text
-    document is not a spec or there is no macro under the cursor, then ``None``
-    is returned. If the symbol under the cursor looks like a macro and it is
-    present in ``macros_dump``, then the respective ``Macro`` object is
-    returned. If the symbol under the cursor looks like a macro, but is not in
-    ``macros_dump``, then the symbol is returned as a string.
-
-    If ``macros_dump`` is ``None``, then the system rpm macros are
-    loaded. Passing a list (even an empty list) ensures that no macros are
-    loaded.
-
-    """
-    if text_document is not None:
-        url = urlparse(text_document.uri)
-        path = unquote(url.path)
-
-        if url.scheme != "file" or not path.endswith(".spec"):
-            return None
-
-        spec = Specfile(path)
-
-    assert spec
-
-    with spec.lines() as lines:
-        symbol = get_macro_string_at_position(lines[position.line], position.character)
-        if not symbol:
-            return None
-
-        for macro in macros_dump if macros_dump is not None else Macros.dump():
-            if macro.name == symbol:
-                return macro
-
-        return symbol

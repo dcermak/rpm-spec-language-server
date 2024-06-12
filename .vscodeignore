@@ -9,7 +9,6 @@
 **/*.py
 **/*.log
 dist/**
-clients/emacs/**
 htmlcov/**
 rpm_spec_language_server*/**
 tests/**

@@ -4,7 +4,8 @@ from urllib.parse import quote
 
 import pytest
 from lsprotocol.types import Position, TextDocumentIdentifier
-from rpm_spec_language_server.util import position_from_match, spec_from_text_document
+from rpm_spec_language_server.server import create_rpm_lang_server
+from rpm_spec_language_server.util import position_from_match
 
 from tests.data import NOTMUCH_SPEC
 
@@ -57,7 +58,7 @@ def test_spec_from_text_with_special_path(tmp_path: Path) -> None:
     (spec_f := (dest_dir / "notmuch.spec")).touch()
     spec_f.write_text(NOTMUCH_SPEC)
 
-    spec = spec_from_text_document(
+    spec = create_rpm_lang_server().spec_from_text_document(
         text_document=TextDocumentIdentifier(
             uri=f"file://{quote(str(spec_f.absolute()))}"
         )
