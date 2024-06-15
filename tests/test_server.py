@@ -1,7 +1,7 @@
 import re
 from os import getenv
 from time import sleep
-from typing import Callable, Optional
+from typing import Callable, Optional, cast
 
 import pytest
 from lsprotocol.types import (
@@ -27,6 +27,7 @@ from lsprotocol.types import (
     VersionedTextDocumentIdentifier,
 )
 from pygls.server import LanguageServer
+from rpm_spec_language_server.server import RpmSpecLanguageServer
 
 from .conftest import CLIENT_SERVER_T
 
@@ -280,17 +281,31 @@ def _check_everything_completed(completion_list: CompletionList) -> None:
     ) and _keyword_in_completion_list("BuildRequires", completion_list)
 
 
-def _check_probably_only_macros(completion_list: CompletionList) -> None:
-    assert all(not item.label.startswith("%") for item in completion_list.items)
-    assert not _keyword_in_completion_list("BuildRequires", completion_list)
-    assert _keyword_in_completion_list("prep", completion_list)
+def _create_check_probably_only_macros_checker(is_vscode: bool):
+    if is_vscode:
+
+        def _check_probably_only_macros(completion_list: CompletionList) -> None:
+            assert all(not item.label.startswith("%") for item in completion_list.items)
+            assert not _keyword_in_completion_list("BuildRequires", completion_list)
+            assert _keyword_in_completion_list("prep", completion_list)
+
+        return _check_probably_only_macros
+    else:
+
+        def _check_only_macros(completion_list: CompletionList) -> None:
+            assert all(item.label.startswith("%") for item in completion_list.items)
+            assert _keyword_in_completion_list("%prep", completion_list)
+
+        return _check_only_macros
 
 
+# @pytest.mark.parametrize("client_server", ["Code"], indirect=["client_server"])
 @pytest.mark.parametrize(
-    "position,checker,ctx",
+    "client_server,position,checker,ctx",
     [
-        (Position(line=19, character=0), _check_only_macros_completed, None),
+        (None, Position(line=19, character=0), _check_only_macros_completed, None),
         (
+            None,
             Position(0, 0),
             _check_only_preamble_items,
             CompletionContext(
@@ -298,16 +313,27 @@ def _check_probably_only_macros(completion_list: CompletionList) -> None:
                 trigger_kind=CompletionTriggerKind.TriggerCharacter,
             ),
         ),
-        (Position(0, 0), _check_everything_completed, None),
+        (None, Position(0, 0), _check_everything_completed, None),
         (
+            "Code",
             Position(0, 0),
-            _check_probably_only_macros,
+            _create_check_probably_only_macros_checker(True),
+            CompletionContext(
+                trigger_character="%",
+                trigger_kind=CompletionTriggerKind.TriggerCharacter,
+            ),
+        ),
+        (
+            "emacs",
+            Position(0, 0),
+            _create_check_probably_only_macros_checker(False),
             CompletionContext(
                 trigger_character="%",
                 trigger_kind=CompletionTriggerKind.TriggerCharacter,
             ),
         ),
     ],
+    indirect=["client_server"],
 )
 def test_autocomplete(
     client_server: CLIENT_SERVER_T,
@@ -331,3 +357,13 @@ def test_autocomplete(
     assert isinstance(resp, CompletionList) and not resp.is_incomplete
 
     checker(resp)
+
+
+@pytest.mark.parametrize(
+    "client_server, is_vscode",
+    [("Code", True), ("emacs", False)],
+    indirect=["client_server"],
+)
+def test_vscode_detection(client_server: CLIENT_SERVER_T, is_vscode: bool) -> None:
+    _, server = client_server
+    assert cast(RpmSpecLanguageServer, server).is_vscode_connected == is_vscode

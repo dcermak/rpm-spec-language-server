@@ -1,11 +1,12 @@
 import os.path
 import re
 from importlib import metadata
-from typing import Optional, Union, overload
+from typing import Optional, Union, cast, overload
 from urllib.parse import unquote, urlparse
 
 import rpm
 from lsprotocol.types import (
+    INITIALIZE,
     TEXT_DOCUMENT_COMPLETION,
     TEXT_DOCUMENT_DEFINITION,
     TEXT_DOCUMENT_DID_CHANGE,
@@ -27,6 +28,9 @@ from lsprotocol.types import (
     DocumentSymbolParams,
     Hover,
     HoverParams,
+    InitializeParams,
+    InitializeParamsClientInfoType,
+    InitializeResult,
     Location,
     LocationLink,
     MarkupContent,
@@ -37,6 +41,7 @@ from lsprotocol.types import (
     TextDocumentIdentifier,
     TextDocumentItem,
 )
+from pygls.protocol import LanguageServerProtocol, lsp_method
 from pygls.server import LanguageServer
 from specfile.exceptions import RPMException
 from specfile.macros import Macro, MacroLevel, Macros
@@ -57,6 +62,22 @@ from rpm_spec_language_server.util import (
 )
 
 
+class RpmLspProto(LanguageServerProtocol):
+    """Our custom LSP Class that hooks into lsp_intialize and saves the client
+    info for later consumption.
+
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        self.client: Optional[InitializeParamsClientInfoType] = None
+        super().__init__(*args, **kwargs)
+
+    @lsp_method(INITIALIZE)
+    def lsp_initialize(self, params: InitializeParams) -> InitializeResult:
+        self.client_info = params.client_info
+        return super().lsp_initialize(params)
+
+
 class RpmSpecLanguageServer(LanguageServer):
     _CONDITION_KEYWORDS = [
         # from https://github.com/rpm-software-management/rpm/blob/7d3d9041af2d75c4709cf7a721daf5d1787cce14/build/rpmbuild_internal.h#L58
@@ -74,7 +95,11 @@ class RpmSpecLanguageServer(LanguageServer):
     ]
 
     def __init__(self, container_mount_path: Optional[str] = None) -> None:
-        super().__init__(name := "rpm_spec_language_server", metadata.version(name))
+        super().__init__(
+            name := "rpm_spec_language_server",
+            metadata.version(name),
+            protocol_cls=RpmLspProto,
+        )
         self.spec_files: dict[str, SpecSections] = {}
         self.macros = Macros.dump()
         self.auto_complete_data = create_autocompletion_documentation_from_spec_md(
@@ -82,9 +107,28 @@ class RpmSpecLanguageServer(LanguageServer):
         )
         self._container_path: str = container_mount_path or ""
 
+    @property
+    def is_vscode_connected(self) -> bool:
+        """Try to guess from the LSP's client_info whether it is VSCode."""
+        client_info: Optional[InitializeParamsClientInfoType] = cast(
+            RpmLspProto, self.lsp
+        ).client_info
+        if client_info:
+            return client_info.name.lower().startswith("code")
+        return False
+
     def macro_and_scriptlet_completions(
         self, with_percent: bool
     ) -> list[CompletionItem]:
+        # vscode does weird things with completions and sometimes needs the % to
+        # be written in front of macros and sometimes not.
+        # Other clients (lsp-mode.el, eglot.el, vim) on the other hand do not
+        # like it to have their trigger character removed and discard such
+        # completion items. Thus we have to include the % always for these
+        # clients
+        if not self.is_vscode_connected:
+            with_percent = True
+
         return (
             [
                 CompletionItem(

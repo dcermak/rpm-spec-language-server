@@ -4,12 +4,14 @@ import threading
 from typing import Generator
 
 import pytest
+from _pytest.fixtures import SubRequest
 from lsprotocol.types import (
     EXIT,
     INITIALIZE,
     SHUTDOWN,
     ClientCapabilities,
     InitializeParams,
+    InitializeParamsClientInfoType,
 )
 from pygls.server import LanguageServer
 from typeguard import install_import_hook
@@ -27,7 +29,8 @@ class ClientServer:
     # shamelessly stolen from
     # https://github.com/openlawlibrary/pygls/blob/8f601029dcf3c7c91be7bf2d86a841a1598ce1f0/tests/ls_setup.py#L109
 
-    def __init__(self):
+    def __init__(self, client_name: str = "client"):
+        self.client_name = client_name
         # Client to Server pipe
         csr, csw = os.pipe()
         # Server to client pipe
@@ -79,7 +82,10 @@ class ClientServer:
         response = self.client.lsp.send_request(
             INITIALIZE,
             InitializeParams(
-                process_id=12345, root_uri="file://", capabilities=ClientCapabilities()
+                process_id=12345,
+                root_uri="file://",
+                capabilities=ClientCapabilities(),
+                client_info=InitializeParamsClientInfoType(name=self.client_name),
             ),
         ).result(timeout=timeout)
         assert response.capabilities is not None
@@ -93,8 +99,11 @@ CLIENT_SERVER_T = Generator[tuple[LanguageServer, RpmSpecLanguageServer], None, 
 
 
 @pytest.fixture
-def client_server() -> CLIENT_SERVER_T:
-    cs = ClientServer()
+def client_server(request: SubRequest) -> CLIENT_SERVER_T:
+    if (param := getattr(request, "param", None)) and isinstance(param, str):
+        cs = ClientServer(client_name=param)
+    else:
+        cs = ClientServer()
     cs.start()
 
     client, server = cs
