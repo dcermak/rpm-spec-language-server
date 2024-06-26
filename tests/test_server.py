@@ -10,6 +10,7 @@ from lsprotocol.types import (
     TEXT_DOCUMENT_DID_CHANGE,
     TEXT_DOCUMENT_DID_CLOSE,
     TEXT_DOCUMENT_DID_OPEN,
+    TEXT_DOCUMENT_HOVER,
     CompletionContext,
     CompletionList,
     CompletionParams,
@@ -18,7 +19,11 @@ from lsprotocol.types import (
     DidChangeTextDocumentParams,
     DidCloseTextDocumentParams,
     DidOpenTextDocumentParams,
+    Hover,
+    HoverParams,
     Location,
+    MarkupContent,
+    MarkupKind,
     Position,
     Range,
     TextDocumentContentChangeEvent_Type2,
@@ -171,6 +176,7 @@ assert bindir_define_line > 0, f"Could not find %_bindir in {_RPM_MACROS_FILE}"
         # %undefined_macro
         (Position(line=24, character=10), None, None),
         (
+            # %_bindir in %install
             Position(line=21, character=27),
             [
                 Range(
@@ -367,3 +373,47 @@ def test_autocomplete(
 def test_vscode_detection(client_server: CLIENT_SERVER_T, is_vscode: bool) -> None:
     _, server = client_server
     assert cast(RpmSpecLanguageServer, server).is_vscode_connected == is_vscode
+
+
+@pytest.mark.parametrize(
+    "position, expected_hover",
+    [  # position on %{name}
+        (Position(line=17, character=34), "hello-world"),
+        # position on %{version}
+        (Position(line=17, character=44), "1"),
+        # position of %dest in %install
+        (Position(line=22, character=46), "/usr/bin/hello-world.sh"),
+        # position of %script in %build
+        (Position(line=15, character=9), "hello-world.sh"),
+        # %undefined_macro
+        (Position(line=24, character=10), None),
+        # %_bindir in %install
+        (Position(line=21, character=27), "/usr/bin"),
+    ],
+)
+def test_hover(
+    client_server: CLIENT_SERVER_T, position: Position, expected_hover: Optional[str]
+) -> None:
+    client, _ = client_server
+    open_spec_file(client, (path := "/home/me/specs/hello_world.spec"), _HELLO_SPEC)
+    sleep(_SLEEP_TIMEOUT)
+
+    resp = client.lsp.send_request(
+        TEXT_DOCUMENT_HOVER,
+        HoverParams(
+            text_document=TextDocumentIdentifier(uri=f"file://{path}"),
+            position=position,
+        ),
+    ).result()
+
+    if expected_hover:
+        assert (
+            Hover(
+                contents=MarkupContent(
+                    value=f"```bash\n{expected_hover}\n```", kind=MarkupKind.Markdown
+                )
+            )
+            == resp
+        )
+    else:
+        assert resp is None
