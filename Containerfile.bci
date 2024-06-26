@@ -1,0 +1,49 @@
+ARG SLES_VERSION=15.5
+
+FROM registry.suse.com/bci/bci-base:${SLES_VERSION} as macros-installer
+ARG SLES_VERSION=15.5
+ENV SLES_VERSION=${SLES_VERSION}
+
+RUN set -euo pipefail; \
+    zypper -n in gawk findutils python311-pipx python311-rpm; \
+    # do a dumb search for -macro packages as that's the best that we can get
+    zypper -t se /.*-macros/ | awk -F'|' ' /package/ {print $2}' | sed '/texlive/d' | xargs zypper -n in; \
+    PIPX_BIN_DIR=/usr/bin pipx install poetry;
+
+WORKDIR /build/
+
+COPY pyproject.toml poetry.lock .
+
+RUN set -euo pipefail; \
+    # need to have access to the system site packages for rpm module
+    poetry config virtualenvs.options.system-site-packages true; \
+    poetry install --no-root
+
+COPY . .
+
+RUN set -euo pipefail; \
+    poetry install --only-root; \
+    # FIXME: tests don't work in poetry
+    # poetry run pytest -vv; \
+    poetry build
+
+
+ARG SLES_VERSION=15.5
+FROM registry.suse.com/bci/bci-base:${SLES_VERSION} as runner
+ARG SERVER_VERSION=0.0.1
+
+COPY --from=macros-installer /build/dist/rpm_spec_language_server-${SERVER_VERSION}-py3-none-any.whl .
+COPY --from=macros-installer /usr/lib/rpm/ /usr/lib/rpm
+
+RUN set -euo pipefail; \
+    zypper -n in python311-pip python311-rpm; \
+    pip install rpm_spec_language_server-0.0.1-py3-none-any.whl;
+
+WORKDIR /src/
+
+EXPOSE 2087
+
+LABEL run "podman run --rm -it -p 2087:2087 -v .:/src/:z \$IMAGE"
+MAINTAINER Dan Čermák <dcermak@suse.com>
+
+ENTRYPOINT ["/usr/bin/python3.11", "-m", "rpm_spec_language_server", "-vvv", "--ctr-mount-path=/src/", "--host=0.0.0.0"]
