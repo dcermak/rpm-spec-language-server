@@ -553,10 +553,38 @@ def create_rpm_lang_server(
                 macros_dump=server.macros,
             )
 
-        # not a macro or an unknown macro => cannot show a meaningful hover
-        if not macro or isinstance(macro, str):
+        LOGGER.debug("Got macro '%s' at position %s", macro, params.position)
+
+        # not a macro
+        if not macro:
             return None
 
+        if isinstance(macro, str):
+            if not macro.startswith("%"):
+                macro = f"%{macro}"
+
+            try:
+                if spec_sections:
+                    expanded = spec_sections.spec.expand(macro)
+                else:
+                    path = server._spec_path_from_uri(params.text_document.uri)
+                    if not path:
+                        return None
+                    spec = Specfile(path)
+                    expanded = spec.expand(macro)
+
+                LOGGER.debug("Expanded '%s' to '%s'", macro, expanded)
+                if expanded == macro:
+                    return None
+                return Hover(
+                    contents=MarkupContent(
+                        value=f"```bash\n{expanded}\n```", kind=MarkupKind.Markdown
+                    )
+                )
+            except RPMException:
+                return None
+
+        assert isinstance(macro, Macro)
         if macro.level == MacroLevel.BUILTIN:
             return Hover(contents="builtin")
 
