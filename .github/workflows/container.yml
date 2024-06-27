@@ -27,6 +27,16 @@ jobs:
               "SERVER_VERSION=0.0.1"
               "LEAP_VERSION=15.6"
             suffix: leap
+          - distri: bci-15.5
+            build_args: |
+              "SERVER_VERSION=0.0.1"
+              "SLES_VERSION=15.5"
+            suffix: bci
+          - distri: bci-15.6
+            build_args: |
+              "SERVER_VERSION=0.0.1"
+              "SLES_VERSION=15.6"
+            suffix: bci
         build_args:
           - |
             "SERVER_VERSION=0.0.1"
