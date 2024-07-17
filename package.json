@@ -6,6 +6,7 @@
   "repository": "https://github.com/dcermak/rpm-spec-language-server",
   "author": "Dan Čermák <dcermak@suse.com>",
   "license": "GPL-2.0-or-later",
+  "publisher": "dcermak",
   "categories": [
     "Other"
   ],
