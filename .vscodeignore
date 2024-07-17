@@ -8,6 +8,7 @@
 **/*.map
 **/*.py
 **/*.log
+Containerfile*
 dist/**
 htmlcov/**
 rpm_spec_language_server*/**
@@ -17,5 +18,7 @@ pyproject.toml
 .github/**
 .vscode/**
 .pytest_cache/**
+.ruff_cache/**
+.mypy_cache/**
 source/**
 build/**
