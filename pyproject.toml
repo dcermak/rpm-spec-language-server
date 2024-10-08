@@ -16,6 +16,7 @@ python = "^3.9"
 pygls = "^1.2"
 specfile = ">=0.18"
 requests = ">=2.32"
+rpm = ">= 0.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.3"

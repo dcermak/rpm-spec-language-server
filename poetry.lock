@@ -960,13 +960,13 @@ jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
 name = "rpm"
-version = "0.1.0"
+version = "0.2.0"
 description = "Shim RPM module for use in virtualenvs."
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "rpm-0.1.0-py3-none-any.whl", hash = "sha256:3664381f6f3cf050e97f49619cf57abacf3e77d68ddd3bfea3e7459c7c5f03f9"},
-    {file = "rpm-0.1.0.tar.gz", hash = "sha256:0e320a806fb61c3980c0cd0c5f5faec97c73c347432902ba2955a08a7b1a034f"},
+    {file = "rpm-0.2.0-py3-none-any.whl", hash = "sha256:4050b6033f7403be0a34f42a742c49ba74f2b0c6129f0247115b6078b24ddd71"},
+    {file = "rpm-0.2.0.tar.gz", hash = "sha256:b92285f65c9ddf77678cb3e51aa67827426408fac34cdd8d537d8c14e3eaffbf"},
 ]
 
 [package.extras]
@@ -1285,4 +1285,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "7fdcb294aec02fdd3ce420dead3945cbf27e6ce16fad568e803d6a185eb1d988"
+content-hash = "843caab8fc90ecf1356642c7d6324fd71aa9aa69ed05e8d4dc7cb7492d939f2d"
