@@ -94,7 +94,11 @@ class RpmSpecLanguageServer(LanguageServer):
         "%elif",
     ]
 
-    def __init__(self, container_mount_path: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        container_mount_path: Optional[str] = None,
+        container_macro_mount_path: Optional[str] = None,
+    ) -> None:
         super().__init__(
             name := "rpm_spec_language_server",
             metadata.version(name),
@@ -106,6 +110,7 @@ class RpmSpecLanguageServer(LanguageServer):
             retrieve_spec_md() or ""
         )
         self._container_path: str = container_mount_path or ""
+        self._container_macro_mount_path: str = container_macro_mount_path or ""
 
     @property
     def is_vscode_connected(self) -> bool:
@@ -173,6 +178,18 @@ class RpmSpecLanguageServer(LanguageServer):
             return os.path.join(self._container_path, os.path.basename(path))
 
         return path
+
+    def _macro_uri(self, macro_file_location: str) -> str:
+        if self._container_macro_mount_path:
+            return "file://" + os.path.join(
+                self._container_macro_mount_path,
+                # remove leading slashes from the location as os.path.join will
+                # otherwise return *only* macro_file_location and omit
+                # self._container_macro_mount_path
+                macro_file_location.lstrip("/"),
+            )
+        else:
+            return f"file://{macro_file_location}"
 
     def spec_from_text_document(
         self,
@@ -267,8 +284,11 @@ class RpmSpecLanguageServer(LanguageServer):
 
 def create_rpm_lang_server(
     container_mount_path: Optional[str] = None,
+    container_macro_mount_path: Optional[str] = None,
 ) -> RpmSpecLanguageServer:
-    rpm_spec_server = RpmSpecLanguageServer(container_mount_path)
+    rpm_spec_server = RpmSpecLanguageServer(
+        container_mount_path, container_macro_mount_path
+    )
 
     def did_open_or_save(
         server: RpmSpecLanguageServer,
@@ -501,7 +521,7 @@ def create_rpm_lang_server(
                             if define_matches := find_macro_in_macro_file(
                                 macro_file_f.read(-1)
                             ):
-                                file_uri = f"file://{f.name}"
+                                file_uri = server._macro_uri(f.name)
                                 break
 
             # we didn't find a match
@@ -513,7 +533,7 @@ def create_rpm_lang_server(
                     if define_matches := find_macro_in_macro_file(
                         macro_file_f.read(-1)
                     ):
-                        file_uri = f"file://{fname}"
+                        file_uri = server._macro_uri(fname)
 
         if define_matches and file_uri:
             return [
