@@ -500,7 +500,11 @@ def create_rpm_lang_server(
                     str(spec_sections.spec)
                 )
             ):
-                return None
+                # or maybe it's defined via %global or %define?
+                if not (
+                    define_matches := find_macro_define_in_spec(str(spec_sections.spec))
+                ):
+                    return None
             file_uri = param.text_document.uri
 
         # the macro comes from a macro file
