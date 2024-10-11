@@ -294,7 +294,6 @@ def create_rpm_lang_server(
         server: RpmSpecLanguageServer,
         param: Union[DidOpenTextDocumentParams, DidSaveTextDocumentParams],
     ) -> None:
-        LOGGER.debug("open or save event")
         if not (spec := server.spec_from_text_document(param.text_document)):
             return None
 
@@ -424,6 +423,7 @@ def create_rpm_lang_server(
                 param.text_document
             )
         ):
+            LOGGER.debug("spec sections of %s are unavailable", param.text_document.uri)
             return None
 
         macro_under_cursor = server.get_macro_under_cursor(
@@ -431,6 +431,7 @@ def create_rpm_lang_server(
         )
 
         if not macro_under_cursor:
+            LOGGER.debug("did not find macro under cursor")
             return None
 
         macro_name = (
@@ -443,6 +444,8 @@ def create_rpm_lang_server(
             if isinstance(macro_under_cursor, str)
             else macro_under_cursor.level
         )
+
+        LOGGER.debug("Got macro %s, level: %s", macro_name, macro_level)
 
         def find_macro_define_in_spec(file_contents: str) -> list[re.Match[str]]:
             """Searches for the definition of the macro ``macro_under_cursor``
@@ -490,6 +493,8 @@ def create_rpm_lang_server(
 
         # macro is something like %version, %release, etc.
         elif macro_level == MacroLevel.SPEC:
+            LOGGER.debug("looking for macro %s in the spec", macro_name)
+            # try the preamble values
             if not (
                 define_matches := find_preamble_definition_in_spec(
                     str(spec_sections.spec)
@@ -510,14 +515,18 @@ def create_rpm_lang_server(
         # builtin macros file of rpm (_should_ be in %_rpmconfigdir/macros) so
         # we retry the search in that file.
         elif macro_level == MacroLevel.MACROFILES:
+            LOGGER.debug("looking for %s in macro files", macro_name)
             MACROS_DIR = rpm.expandMacro("%_rpmmacrodir")
+            LOGGER.debug("%%_rpmmacrodir: %s", MACROS_DIR)
             ts = rpm.TransactionSet()
 
             # search in packages
             for pkg in ts.dbMatch("provides", f"rpm_macro({macro_name})"):
+                LOGGER.debug("Package %s provides rpm_macro(%s)", pkg.name, macro_name)
                 for f in rpm.files(pkg):
                     if f.name.startswith(MACROS_DIR):
                         with open(f.name) as macro_file_f:
+                            LOGGER.debug("Looking for macro in %s", f.name)
                             if define_matches := find_macro_in_macro_file(
                                 macro_file_f.read(-1)
                             ):
