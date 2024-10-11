@@ -465,7 +465,7 @@ def create_rpm_lang_server(
 
             """
             regex = re.compile(
-                rf"^([\t \f]*)(%{macro_name})([\t \f]+)(\S+)", re.MULTILINE
+                rf"^([\t \f]*)(%{macro_name})([\t \f]+|\()(\S+)", re.MULTILINE
             )
             return list(regex.finditer(file_contents))
 
