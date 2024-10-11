@@ -1,5 +1,4 @@
 import os.path
-import re
 from importlib import metadata
 from typing import Optional, Union, cast, overload
 from urllib.parse import unquote, urlparse
@@ -57,6 +56,9 @@ from rpm_spec_language_server.macros import (
     get_macro_string_at_position,
 )
 from rpm_spec_language_server.util import (
+    find_macro_define_in_spec,
+    find_macro_matches_in_macro_file,
+    find_preamble_definition_in_spec,
     position_from_match,
     spec_from_text,
 )
@@ -447,45 +449,14 @@ def create_rpm_lang_server(
 
         LOGGER.debug("Got macro %s, level: %s", macro_name, macro_level)
 
-        def find_macro_define_in_spec(file_contents: str) -> list[re.Match[str]]:
-            """Searches for the definition of the macro ``macro_under_cursor``
-            as it would appear in a spec file, i.e.: ``%global macro`` or
-            ``%define macro``.
-
-            """
-            regex = re.compile(
-                rf"^([\t \f]*)(%(?:global|define))([\t \f]+)({macro_name})",
-                re.MULTILINE,
-            )
-            return list(regex.finditer(file_contents))
-
-        def find_macro_in_macro_file(file_contents: str) -> list[re.Match[str]]:
-            """Searches for the definition of the macro ``macro_under_cursor``
-            as it would appear in a rpm macros file, i.e.: ``%macro …``.
-
-            """
-            regex = re.compile(
-                rf"^([\t \f]*)(%{macro_name})([\t \f]+|\()(\S+)", re.MULTILINE
-            )
-            return list(regex.finditer(file_contents))
-
-        def find_preamble_definition_in_spec(
-            file_contents: str,
-        ) -> list[re.Match[str]]:
-            regex = re.compile(
-                rf"^([\t \f]*)({macro_name}):([\t \f]+)(\S*)",
-                re.MULTILINE | re.IGNORECASE,
-            )
-            if (m := regex.search(file_contents)) is None:
-                return []
-            return [m]
-
         define_matches, file_uri = [], None
 
         # macro is defined in the spec file
         if macro_level == MacroLevel.GLOBAL:
             if not (
-                define_matches := find_macro_define_in_spec(str(spec_sections.spec))
+                define_matches := find_macro_define_in_spec(
+                    macro_name, str(spec_sections.spec)
+                )
             ):
                 return None
 
@@ -497,12 +468,14 @@ def create_rpm_lang_server(
             # try the preamble values
             if not (
                 define_matches := find_preamble_definition_in_spec(
-                    str(spec_sections.spec)
+                    macro_name, str(spec_sections.spec)
                 )
             ):
                 # or maybe it's defined via %global or %define?
                 if not (
-                    define_matches := find_macro_define_in_spec(str(spec_sections.spec))
+                    define_matches := find_macro_define_in_spec(
+                        macro_name, str(spec_sections.spec)
+                    )
                 ):
                     return None
             file_uri = param.text_document.uri
@@ -531,8 +504,8 @@ def create_rpm_lang_server(
                     if f.name.startswith(MACROS_DIR):
                         with open(f.name) as macro_file_f:
                             LOGGER.debug("Looking for macro in %s", f.name)
-                            if define_matches := find_macro_in_macro_file(
-                                macro_file_f.read(-1)
+                            if define_matches := find_macro_matches_in_macro_file(
+                                macro_name, macro_file_f.read(-1)
                             ):
                                 file_uri = server._macro_uri(f.name)
                                 break
@@ -543,8 +516,8 @@ def create_rpm_lang_server(
             if not define_matches:
                 fname = rpm.expandMacro("%_rpmconfigdir") + "/macros"
                 with open(fname) as macro_file_f:
-                    if define_matches := find_macro_in_macro_file(
-                        macro_file_f.read(-1)
+                    if define_matches := find_macro_matches_in_macro_file(
+                        macro_name, macro_file_f.read(-1)
                     ):
                         file_uri = server._macro_uri(fname)
 
