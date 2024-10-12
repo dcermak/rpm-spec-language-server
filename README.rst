@@ -64,7 +64,7 @@ The server requires the `spec.md
 file. It can either use the locally installed copy from the ``rpm`` package or
 (if the documentation has not been installed) from a locally cached version in
 ``~/.cache/rpm/spec.md``. The language server will fetch the ``spec.md`` from
-the upstream github repository if neither of the previous options.
+the upstream github repository if neither of the previous options works.
 
 
 Container Mode
@@ -75,32 +75,26 @@ container mode. In this mode, the server is launched inside a container with the
 package directory mounted into the running container. This allows you to have
 access to a different distribution than your current one.
 
-The container mode can currently handle only one package open. The RPM spec file
-**must** be in the top-level directory. Additionally, the server **must**
-communicate via TCP. This means that you might have to reconfigure your
+The container mode can currently handle only having one package open. The RPM
+spec file **must** be in the top-level directory. Additionally, the server
+**must** communicate via TCP. This means that you might have to reconfigure your
 lsp-client, if it assumes to communicate via stdio.
 
-To enable the container mode with Podman, proceed as follows:
+To run the language server in container mode, launch the language server with
+the following additional flags:
 
 .. code-block:: shell-session
 
    $ cd ~/path/to/my/package
    $ # ensure that the spec file is in the current working directory!
-   $ podman container runlabel run \
-         ghcr.io/dcermak/rpm-spec-lang-server:$distri
+   $ python -m rpm_spec_language_server -vvv \
+         --distribution $distri \
+         --container-mode \
+         --container-runtime=$runtime \
 
 where you replace ``$distri`` with one of ``tumbleweed``, ``leap-15.5``,
-``leap-15.6``, ``fedora`` or ``centos``.
-
-To use Docker, get the exact launch command as shown below:
-
-.. code-block:: shell-session
-
-   $ docker inspect -f '{{index .Config.Labels "run"}}' \
-         ghcr.io/dcermak/rpm-spec-lang-server:$distri | \
-         sed -e 's/podman/docker/' -e 's|$IMAGE|ghcr.io/dcermak/rpm-spec-lang-server:$distri|'
-
-In the example above, replace ``$distri`` with the desired distribution.
+``leap-15.6``, ``fedora`` or ``centos`` and ``$runtime`` with either ``docker``
+or ``podman``.
 
 Supported distributions/tags
 ----------------------------
