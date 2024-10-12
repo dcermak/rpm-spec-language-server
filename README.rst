@@ -105,11 +105,11 @@ In the example above, replace ``$distri`` with the desired distribution.
 Supported distributions/tags
 ----------------------------
 
-- ``fedora``: based on ``fedora:latest``
-- ``tumbleweed``: based on ``tumbleweed:latest``
-- ``centos``: based on ``centos:stream9``
-- ``leap-15.5``: based on ``leap:15.5``
-- ``leap-15.6``: based on ``leap:15.6``
+- ``fedora``: based on ``registry.fedoraproject.org/fedora:latest``
+- ``tumbleweed``: based on ``registry.opensuse.org/opensuse/tumbleweed:latest``
+- ``centos``: based on ``quay.io/centos/centos:stream9``
+- ``leap-15.5``: based on ``registry.opensuse.org/opensuse/leap:15.5``
+- ``leap-15.6``: based on ``registry.opensuse.org/opensuse/leap:15.6``
 
 
 Clients
