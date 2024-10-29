@@ -956,13 +956,13 @@ jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
 name = "rpm"
-version = "0.2.0"
+version = "0.3.0"
 description = "Shim RPM module for use in virtualenvs."
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "rpm-0.2.0-py3-none-any.whl", hash = "sha256:4050b6033f7403be0a34f42a742c49ba74f2b0c6129f0247115b6078b24ddd71"},
-    {file = "rpm-0.2.0.tar.gz", hash = "sha256:b92285f65c9ddf77678cb3e51aa67827426408fac34cdd8d537d8c14e3eaffbf"},
+    {file = "rpm-0.3.0-py3-none-any.whl", hash = "sha256:4f93082693fc82079d8ad080aebad1ec8aed1667c4f2081b3d5f2cd28dfb5e2f"},
+    {file = "rpm-0.3.0.tar.gz", hash = "sha256:2c5415abb7d8a15428cb97a6f429c107c0619bfd4d0140c034af46e7c8d53b2e"},
 ]
 
 [package.extras]
