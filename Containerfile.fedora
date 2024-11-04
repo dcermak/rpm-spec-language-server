@@ -4,7 +4,8 @@ RUN set -euo pipefail; \
     # for xargs + poetry + pip
     dnf -y install findutils poetry python3-pip; \
     # install all packages providing a rpm macro, but filter out all packages with conflicts
-    dnf rq --whatprovides 'rpm_macro(*)' --qf "%{name}" | uniq | sed -e '/postgresql15/d' -e '/add-determinism/d' -e '/release-common/d' -e '/build-constraints/d' | xargs dnf -y install; \
+    # build-constraints has file level conflicts with redhat-rpm-config
+    dnf rq --whatprovides 'rpm_macro(*)' --qf "%{name}\n" | uniq | sed -e '/postgresql15/d' -e '/release-common/d' -e '/build-constraints/d' | xargs dnf -y install; \
     # install the previously filtered out packages
     dnf -y install fedora-release-common;
 
