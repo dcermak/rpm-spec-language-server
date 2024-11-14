@@ -1118,18 +1118,17 @@ files = [
 
 [[package]]
 name = "specfile"
-version = "0.32.5"
+version = "0.32.6"
 description = "A library for parsing and manipulating RPM spec files."
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "specfile-0.32.5-py3-none-any.whl", hash = "sha256:fdd02b6d205343e96041f5bec46336a982717bd4a90dba98ed4bac28c532eb72"},
-    {file = "specfile-0.32.5.tar.gz", hash = "sha256:84d99782af4861ae83e0b5599b92a6f6a48958dafc64f5e5afeed994aa638493"},
+    {file = "specfile-0.32.6-py3-none-any.whl", hash = "sha256:4ca38d147882f56c4c611ce825a49dfe5d6936e1d6d80c2cce6e07e16c6956b0"},
+    {file = "specfile-0.32.6.tar.gz", hash = "sha256:d5e214b38d02b0e38d011a3af5e655b5ea93ee6113570ea0bccb06af314f96d3"},
 ]
 
 [package.dependencies]
 rpm = "*"
-typing-extensions = "*"
 
 [package.extras]
 testing = ["flexmock", "pytest"]
