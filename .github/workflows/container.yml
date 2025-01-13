@@ -17,11 +17,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - distri: leap-15.5
-            build_args: |
-              "SERVER_VERSION=0.0.1"
-              "LEAP_VERSION=15.5"
-            suffix: leap
           - distri: leap-15.6
             build_args: |
               "SERVER_VERSION=0.0.1"

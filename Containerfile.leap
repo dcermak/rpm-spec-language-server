@@ -1,7 +1,7 @@
-ARG LEAP_VERSION=15.5
+ARG LEAP_VERSION=15.6
 
 FROM registry.opensuse.org/opensuse/leap-dnf:${LEAP_VERSION} AS macros-installer
-ARG LEAP_VERSION=15.5
+ARG LEAP_VERSION=15.6
 ENV LEAP_VERSION=${LEAP_VERSION}
 
 RUN set -euo pipefail; \
@@ -32,7 +32,7 @@ RUN set -euo pipefail; \
     # FIXME: tests don't work from poetry
     # poetry run pytest -vv
 
-ARG LEAP_VERSION=15.5
+ARG LEAP_VERSION=15.6
 FROM registry.opensuse.org/opensuse/leap-dnf:${LEAP_VERSION}
 ARG SERVER_VERSION=0.0.1
 
