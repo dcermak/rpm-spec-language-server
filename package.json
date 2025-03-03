@@ -40,7 +40,7 @@
     "@types/node": "^22.13",
     "@types/vscode": ">=1.75",
     "@vscode/vsce": "^3",
-    "typescript": "^5.7"
+    "typescript": "^5.8"
   },
   "dependencies": {
     "vscode-languageclient": "^9"
