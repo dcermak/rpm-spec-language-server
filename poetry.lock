@@ -1115,14 +1115,14 @@ jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
 name = "rpm"
-version = "0.3.1"
+version = "0.4.0"
 description = "Shim RPM module for use in virtualenvs."
 optional = false
 python-versions = ">=3.6"
 groups = ["main"]
 files = [
-    {file = "rpm-0.3.1-py3-none-any.whl", hash = "sha256:6a130be8b953781bdbe652927dd9c50d2160f26344ec6e3c0defe823aeda1789"},
-    {file = "rpm-0.3.1.tar.gz", hash = "sha256:d75c5dcb581f1e9c4f89cb6667e938e944c6e7c17dd96829e1553c39f3a4c961"},
+    {file = "rpm-0.4.0-py3-none-any.whl", hash = "sha256:0ef697cb5fb73bf9300a13d423529d7ec215239bf95c5ecb145e6610645f6067"},
+    {file = "rpm-0.4.0.tar.gz", hash = "sha256:79adbefa82318e2625d6e4fa16666cf88543498a1f2c10dc3879165d1dc3ecee"},
 ]
 
 [package.extras]
