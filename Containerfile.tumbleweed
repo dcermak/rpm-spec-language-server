@@ -6,7 +6,7 @@ RUN set -euo pipefail; \
     # install all packages providing a rpm macro, but filter out all packages with conflicts
     dnf rq --whatprovides 'rpm_macro(*)'| sed -e '/llvm/d' -e '/openmpi/d' -e '/fcitx/d' -e '/mvapich/d' -e '/mpich/d' -e '/cmake-mini/d' -e '/elixir115/d'| xargs dnf -y install; \
     # install the previously filtered out packages
-    dnf -y install llvm-devel openmpi-macros-provider fcitx-devel cmake mvapich2-hpc-macros-devel mvapich3-hpc-macros-devel;
+    dnf -y install llvm-devel openmpi-macros-provider fcitx-devel cmake;
 
 
 WORKDIR /build/
