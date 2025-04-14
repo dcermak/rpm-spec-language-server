@@ -1187,14 +1187,14 @@ files = [
 
 [[package]]
 name = "specfile"
-version = "0.34.2"
+version = "0.35.0"
 description = "A library for parsing and manipulating RPM spec files."
 optional = false
 python-versions = ">=3.6"
 groups = ["main"]
 files = [
-    {file = "specfile-0.34.2-py3-none-any.whl", hash = "sha256:5987c67427fcaa81c5964a2af5a829ca1ef45e18ba86a0e5708487dfec7e6f0a"},
-    {file = "specfile-0.34.2.tar.gz", hash = "sha256:ee1265ae068075b1537e1b0a3051354d3dfc8658fd357110b0d99964884e6724"},
+    {file = "specfile-0.35.0-py3-none-any.whl", hash = "sha256:3a078fc330a8eb55a0942ed642aa6bd402e4887ec0d42e464c3ceea5e0c3bae5"},
+    {file = "specfile-0.35.0.tar.gz", hash = "sha256:403f631d13228e36c7e95eac66fc4887ad738d2b47e46626d75ca3b87ab42bd8"},
 ]
 
 [package.dependencies]
