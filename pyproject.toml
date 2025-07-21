@@ -13,7 +13,7 @@ packages = [{include = "rpm_spec_language_server"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-pygls = "^1.2"
+pygls = "^2.0"
 specfile = ">=0.18"
 requests = ">=2.32"
 rpm = ">= 0.2.0"

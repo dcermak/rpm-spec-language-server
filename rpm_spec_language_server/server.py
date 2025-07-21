@@ -1,7 +1,7 @@
 import os.path
 import re
 from importlib import metadata
-from typing import Optional, Union, cast, overload
+from typing import Optional, Union, overload
 from urllib.parse import unquote, urlparse
 
 import rpm
@@ -15,6 +15,7 @@ from lsprotocol.types import (
     TEXT_DOCUMENT_DID_SAVE,
     TEXT_DOCUMENT_DOCUMENT_SYMBOL,
     TEXT_DOCUMENT_HOVER,
+    ClientInfo,
     CompletionItem,
     CompletionList,
     CompletionOptions,
@@ -29,8 +30,6 @@ from lsprotocol.types import (
     Hover,
     HoverParams,
     InitializeParams,
-    InitializeParamsClientInfoType,
-    InitializeResult,
     Location,
     LocationLink,
     MarkupContent,
@@ -41,8 +40,7 @@ from lsprotocol.types import (
     TextDocumentIdentifier,
     TextDocumentItem,
 )
-from pygls.protocol import LanguageServerProtocol, lsp_method
-from pygls.server import LanguageServer
+from pygls.lsp.server import LanguageServer
 from specfile.exceptions import RPMException
 from specfile.macros import Macro, MacroLevel, Macros
 from specfile.specfile import Specfile
@@ -60,22 +58,6 @@ from rpm_spec_language_server.util import (
     position_from_match,
     spec_from_text,
 )
-
-
-class RpmLspProto(LanguageServerProtocol):
-    """Our custom LSP Class that hooks into lsp_intialize and saves the client
-    info for later consumption.
-
-    """
-
-    def __init__(self, *args, **kwargs) -> None:
-        self.client: Optional[InitializeParamsClientInfoType] = None
-        super().__init__(*args, **kwargs)
-
-    @lsp_method(INITIALIZE)
-    def lsp_initialize(self, params: InitializeParams) -> InitializeResult:
-        self.client_info = params.client_info
-        return super().lsp_initialize(params)
 
 
 class RpmSpecLanguageServer(LanguageServer):
@@ -98,8 +80,8 @@ class RpmSpecLanguageServer(LanguageServer):
         super().__init__(
             name := "rpm_spec_language_server",
             metadata.version(name),
-            protocol_cls=RpmLspProto,
         )
+        self._client_info: Optional[ClientInfo] = None
         self.spec_files: dict[str, SpecSections] = {}
         self.macros = Macros.dump()
         self.auto_complete_data = create_autocompletion_documentation_from_spec_md(
@@ -110,11 +92,8 @@ class RpmSpecLanguageServer(LanguageServer):
     @property
     def is_vscode_connected(self) -> bool:
         """Try to guess from the LSP's client_info whether it is VSCode."""
-        client_info: Optional[InitializeParamsClientInfoType] = cast(
-            RpmLspProto, self.lsp
-        ).client_info
-        if client_info:
-            return client_info.name.lower().startswith("code")
+        if self._client_info:
+            return self._client_info.name.lower().startswith("code")
         return False
 
     def macro_and_scriptlet_completions(
@@ -269,6 +248,13 @@ def create_rpm_lang_server(
     container_mount_path: Optional[str] = None,
 ) -> RpmSpecLanguageServer:
     rpm_spec_server = RpmSpecLanguageServer(container_mount_path)
+
+    @rpm_spec_server.feature(INITIALIZE)
+    def capture_client_info(
+        server: RpmSpecLanguageServer, params: InitializeParams
+    ) -> None:
+        """Capture client info for VS Code"""
+        server._client_info = params.client_info
 
     def did_open_or_save(
         server: RpmSpecLanguageServer,
