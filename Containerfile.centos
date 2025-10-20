@@ -23,7 +23,7 @@ RUN set -euo pipefail; \
 
 
 FROM quay.io/centos/centos:stream9 AS runner
-ARG SERVER_VERSION=0.0.1
+ARG SERVER_VERSION=0.0.2
 
 COPY --from=macros-installer /build/dist/rpm_spec_language_server-${SERVER_VERSION}-py3-none-any.whl .
 COPY --from=macros-installer /usr/lib/rpm/ /usr/lib/rpm

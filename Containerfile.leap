@@ -34,7 +34,7 @@ RUN set -euo pipefail; \
 
 ARG LEAP_VERSION=15.6
 FROM registry.opensuse.org/opensuse/leap-dnf:${LEAP_VERSION}
-ARG SERVER_VERSION=0.0.1
+ARG SERVER_VERSION=0.0.2
 
 COPY --from=macros-installer /build/dist/rpm_spec_language_server-${SERVER_VERSION}-py3-none-any.whl .
 COPY --from=macros-installer /usr/lib/rpm/ /usr/lib/rpm

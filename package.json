@@ -1,6 +1,6 @@
 {
   "name": "rpm-spec-language-server",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "RPM Spec File Language Server Client",
   "main": "./clients/vscode/out/extension",
   "repository": "https://github.com/dcermak/rpm-spec-language-server",
