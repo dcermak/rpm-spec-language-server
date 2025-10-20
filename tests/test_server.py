@@ -26,12 +26,12 @@ from lsprotocol.types import (
     MarkupKind,
     Position,
     Range,
-    TextDocumentContentChangeEvent_Type2,
+    TextDocumentContentChangeWholeDocument,
     TextDocumentIdentifier,
     TextDocumentItem,
     VersionedTextDocumentIdentifier,
 )
-from pygls.server import LanguageServer
+from pygls.lsp.server import LanguageServer
 from rpm_spec_language_server.server import RpmSpecLanguageServer
 
 from .conftest import CLIENT_SERVER_T
@@ -73,7 +73,7 @@ install -m 755 hello-world.sh %{buildroot}%{dest}
 
 
 def open_spec_file(client: LanguageServer, path: str, file_contents: str) -> None:
-    client.lsp.notify(
+    client.protocol.notify(
         TEXT_DOCUMENT_DID_OPEN,
         DidOpenTextDocumentParams(
             text_document=TextDocumentItem(
@@ -97,12 +97,12 @@ def test_in_memory_spec_sections(client_server: CLIENT_SERVER_T) -> None:
         and str(server.spec_files[uri].spec) == _HELLO_SPEC
     )
 
-    client.lsp.notify(
+    client.protocol.notify(
         TEXT_DOCUMENT_DID_CHANGE,
         DidChangeTextDocumentParams(
             text_document=VersionedTextDocumentIdentifier(version=1, uri=uri),
             content_changes=[
-                TextDocumentContentChangeEvent_Type2(
+                TextDocumentContentChangeWholeDocument(
                     text=(
                         new_content := "\n".join(
                             (lines := _HELLO_SPEC.splitlines())[:7]
@@ -120,7 +120,7 @@ def test_in_memory_spec_sections(client_server: CLIENT_SERVER_T) -> None:
 
     assert str(server.spec_files[uri].spec) == new_content
 
-    client.lsp.notify(
+    client.protocol.notify(
         TEXT_DOCUMENT_DID_CLOSE,
         DidCloseTextDocumentParams(text_document=TextDocumentIdentifier(uri=uri)),
     )
@@ -198,7 +198,7 @@ def test_jump_to_definition(
     open_spec_file(client, (path := "/home/me/specs/hello_world.spec"), _HELLO_SPEC)
     sleep(_SLEEP_TIMEOUT)
 
-    resp = client.lsp.send_request(
+    resp = client.protocol.send_request(
         TEXT_DOCUMENT_DEFINITION,
         DefinitionParams(
             text_document=TextDocumentIdentifier(uri=(uri := f"file://{path}")),
@@ -215,12 +215,12 @@ def test_jump_to_definition(
     # insert two newlines at the beginning of the spec and repeat the
     # gotoDefinition request with the positions two lines below => should get
     # results shifted by exactly two lines
-    client.lsp.notify(
+    client.protocol.notify(
         TEXT_DOCUMENT_DID_CHANGE,
         DidChangeTextDocumentParams(
             text_document=VersionedTextDocumentIdentifier(version=1, uri=uri),
             content_changes=[
-                TextDocumentContentChangeEvent_Type2(text="\n\n" + _HELLO_SPEC)
+                TextDocumentContentChangeWholeDocument(text="\n\n" + _HELLO_SPEC)
             ],
         ),
     )
@@ -229,7 +229,7 @@ def test_jump_to_definition(
     def two_lines_below(pos: Position) -> Position:
         return Position(line=pos.line + 2, character=pos.character)
 
-    resp = client.lsp.send_request(
+    resp = client.protocol.send_request(
         TEXT_DOCUMENT_DEFINITION,
         DefinitionParams(
             text_document=TextDocumentIdentifier(uri=(uri := f"file://{path}")),
@@ -351,7 +351,7 @@ def test_autocomplete(
     open_spec_file(client, (path := "/home/me/specs/hello_world.spec"), _HELLO_SPEC)
     sleep(_SLEEP_TIMEOUT)
 
-    resp = client.lsp.send_request(
+    resp = client.protocol.send_request(
         TEXT_DOCUMENT_COMPLETION,
         CompletionParams(
             text_document=TextDocumentIdentifier(uri=f"file://{path}"),
@@ -398,7 +398,7 @@ def test_hover(
     open_spec_file(client, (path := "/home/me/specs/hello_world.spec"), _HELLO_SPEC)
     sleep(_SLEEP_TIMEOUT)
 
-    resp = client.lsp.send_request(
+    resp = client.protocol.send_request(
         TEXT_DOCUMENT_HOVER,
         HoverParams(
             text_document=TextDocumentIdentifier(uri=f"file://{path}"),

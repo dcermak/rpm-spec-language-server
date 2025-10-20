@@ -1,4 +1,4 @@
-FROM quay.io/centos/centos:stream9 as macros-installer
+FROM quay.io/centos/centos:stream9 AS macros-installer
 
 RUN set -euo pipefail; \
     dnf -y install epel-release; dnf -y upgrade --refresh; \
@@ -22,8 +22,8 @@ RUN set -euo pipefail; \
     poetry build
 
 
-FROM quay.io/centos/centos:stream9 as runner
-ARG SERVER_VERSION=0.0.1
+FROM quay.io/centos/centos:stream9 AS runner
+ARG SERVER_VERSION=0.0.2
 
 COPY --from=macros-installer /build/dist/rpm_spec_language_server-${SERVER_VERSION}-py3-none-any.whl .
 COPY --from=macros-installer /usr/lib/rpm/ /usr/lib/rpm
@@ -36,7 +36,7 @@ WORKDIR /src/
 
 EXPOSE 2087
 
-LABEL run "podman run --rm -it -p 2087:2087 -v .:/src/:z \$IMAGE"
+LABEL run="podman run --rm -it -p 2087:2087 -v .:/src/:z \$IMAGE"
 LABEL org.opencontainers.image.source="https://github.com/dcermak/rpm-spec-language-server/"
 MAINTAINER Dan Čermák <dcermak@suse.com>
 

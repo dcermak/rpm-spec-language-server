@@ -29,21 +29,21 @@ RUN set -euo pipefail; \
 
 
 ARG SLES_VERSION=15.5
-FROM registry.suse.com/bci/bci-base:${SLES_VERSION} as runner
-ARG SERVER_VERSION=0.0.1
+FROM registry.suse.com/bci/bci-base:${SLES_VERSION} AS runner
+ARG SERVER_VERSION=0.0.2
 
 COPY --from=macros-installer /build/dist/rpm_spec_language_server-${SERVER_VERSION}-py3-none-any.whl .
 COPY --from=macros-installer /usr/lib/rpm/ /usr/lib/rpm
 
 RUN set -euo pipefail; \
     zypper -n in python311-pip python311-rpm; \
-    pip install rpm_spec_language_server-0.0.1-py3-none-any.whl;
+    pip install rpm_spec_language_server-${SERVER_VERSION}-py3-none-any.whl;
 
 WORKDIR /src/
 
 EXPOSE 2087
 
-LABEL run "podman run --rm -it -p 2087:2087 -v .:/src/:z \$IMAGE"
+LABEL run="podman run --rm -it -p 2087:2087 -v .:/src/:z \$IMAGE"
 MAINTAINER Dan Čermák <dcermak@suse.com>
 
 ENTRYPOINT ["/usr/bin/python3.11", "-m", "rpm_spec_language_server", "-vvv", "--ctr-mount-path=/src/", "--host=0.0.0.0"]

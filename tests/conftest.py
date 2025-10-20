@@ -10,10 +10,10 @@ from lsprotocol.types import (
     INITIALIZE,
     SHUTDOWN,
     ClientCapabilities,
+    ClientInfo,
     InitializeParams,
-    InitializeParamsClientInfoType,
 )
-from pygls.server import LanguageServer
+from pygls.lsp.server import LanguageServer
 from typeguard import install_import_hook
 
 install_import_hook("rpm_spec_language_server")
@@ -65,9 +65,9 @@ class ClientServer:
         self.initialize()
 
     def stop(self) -> None:
-        shutdown_response = self.client.lsp.send_request(SHUTDOWN).result()
+        shutdown_response = self.client.protocol.send_request(SHUTDOWN).result()
         assert shutdown_response is None
-        self.client.lsp.notify(EXIT)
+        self.client.protocol.notify(EXIT)
         self.server_thread.join()
         self.client._stop_event.set()
         try:
@@ -79,13 +79,13 @@ class ClientServer:
     # @retry_stalled_init_fix_hack()
     def initialize(self) -> None:
         timeout = None if "DISABLE_TIMEOUT" in os.environ else 1
-        response = self.client.lsp.send_request(
+        response = self.client.protocol.send_request(
             INITIALIZE,
             InitializeParams(
                 process_id=12345,
                 root_uri="file://",
                 capabilities=ClientCapabilities(),
-                client_info=InitializeParamsClientInfoType(name=self.client_name),
+                client_info=ClientInfo(name=self.client_name),
             ),
         ).result(timeout=timeout)
         assert response.capabilities is not None
