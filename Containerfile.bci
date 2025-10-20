@@ -43,7 +43,7 @@ WORKDIR /src/
 
 EXPOSE 2087
 
-LABEL run "podman run --rm -it -p 2087:2087 -v .:/src/:z \$IMAGE"
+LABEL run="podman run --rm -it -p 2087:2087 -v .:/src/:z \$IMAGE"
 MAINTAINER Dan Čermák <dcermak@suse.com>
 
 ENTRYPOINT ["/usr/bin/python3.11", "-m", "rpm_spec_language_server", "-vvv", "--ctr-mount-path=/src/", "--host=0.0.0.0"]

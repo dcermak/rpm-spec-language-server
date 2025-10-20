@@ -38,7 +38,7 @@ WORKDIR /src/
 
 EXPOSE 2087
 
-LABEL run "podman run --rm -it -p 2087:2087 -v .:/src/:z \$IMAGE"
+LABEL run="podman run --rm -it -p 2087:2087 -v .:/src/:z \$IMAGE"
 LABEL org.opencontainers.image.source="https://github.com/dcermak/rpm-spec-language-server/"
 MAINTAINER Dan Čermák <dcermak@suse.com>
 
