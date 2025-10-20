@@ -29,7 +29,7 @@ RUN set -euo pipefail; \
 
 
 ARG SLES_VERSION=15.5
-FROM registry.suse.com/bci/bci-base:${SLES_VERSION} as runner
+FROM registry.suse.com/bci/bci-base:${SLES_VERSION} AS runner
 ARG SERVER_VERSION=0.0.1
 
 COPY --from=macros-installer /build/dist/rpm_spec_language_server-${SERVER_VERSION}-py3-none-any.whl .

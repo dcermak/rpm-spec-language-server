@@ -1,4 +1,4 @@
-FROM quay.io/centos/centos:stream9 as macros-installer
+FROM quay.io/centos/centos:stream9 AS macros-installer
 
 RUN set -euo pipefail; \
     dnf -y install epel-release; dnf -y upgrade --refresh; \
@@ -22,7 +22,7 @@ RUN set -euo pipefail; \
     poetry build
 
 
-FROM quay.io/centos/centos:stream9 as runner
+FROM quay.io/centos/centos:stream9 AS runner
 ARG SERVER_VERSION=0.0.1
 
 COPY --from=macros-installer /build/dist/rpm_spec_language_server-${SERVER_VERSION}-py3-none-any.whl .

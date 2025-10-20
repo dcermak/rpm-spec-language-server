@@ -1,4 +1,4 @@
-FROM registry.opensuse.org/opensuse/tumbleweed-dnf as macros-installer
+FROM registry.opensuse.org/opensuse/tumbleweed-dnf AS macros-installer
 
 RUN set -euo pipefail; \
     # for xargs + poetry + pip
