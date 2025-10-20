@@ -37,7 +37,7 @@ COPY --from=macros-installer /usr/lib/rpm/ /usr/lib/rpm
 
 RUN set -euo pipefail; \
     zypper -n in python311-pip python311-rpm; \
-    pip install rpm_spec_language_server-0.0.1-py3-none-any.whl;
+    pip install rpm_spec_language_server-${SERVER_VERSION}-py3-none-any.whl;
 
 WORKDIR /src/
 
