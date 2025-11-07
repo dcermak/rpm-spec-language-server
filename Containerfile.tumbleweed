@@ -5,7 +5,7 @@ RUN set -euo pipefail; \
     dnf -y install findutils python3-poetry python3-pip; \
     # install all packages providing a rpm macro, but filter out all packages with conflicts
     # rocm-rpm-macros drag in Modules, which conflicts with lua-lmod, so we can have one or the other ¯\_(ツ)_/¯
-    dnf rq --whatprovides 'rpm_macro(*)'| sed -e '/llvm/d' -e '/openmpi/d' -e '/fcitx/d' -e '/mvapich/d' -e '/mpich/d' -e '/cmake-mini/d' -e '/elixir115/d' -e '/rocm-rpm-macros/d'| xargs dnf -y install; \
+    dnf rq --whatprovides 'rpm_macro(*)'| sed -e '/llvm/d' -e '/openmpi/d' -e '/fcitx/d' -e '/mvapich/d' -e '/mpich/d' -e '/cmake-mini/d' -e '/elixir115/d' -e '/rocm-rpm-macros/d' -e '/mingw\(32\|64\)-*/d'| xargs dnf -y install; \
     # install the previously filtered out packages
     dnf -y install llvm-devel openmpi-macros-provider fcitx-devel cmake;
 
