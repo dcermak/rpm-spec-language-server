@@ -1,5 +1,4 @@
 import os.path
-import re
 from importlib import metadata
 from typing import Optional, Union, overload
 from urllib.parse import unquote, urlparse
@@ -55,6 +54,9 @@ from rpm_spec_language_server.macros import (
     get_macro_string_at_position,
 )
 from rpm_spec_language_server.util import (
+    find_macro_define_in_spec,
+    find_macro_matches_in_macro_file,
+    find_preamble_definition_in_spec,
     position_from_match,
     spec_from_text,
 )
@@ -76,7 +78,11 @@ class RpmSpecLanguageServer(LanguageServer):
         "%elif",
     ]
 
-    def __init__(self, container_mount_path: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        container_mount_path: Optional[str] = None,
+        container_macro_mount_path: Optional[str] = None,
+    ) -> None:
         super().__init__(
             name := "rpm_spec_language_server",
             metadata.version(name),
@@ -88,6 +94,7 @@ class RpmSpecLanguageServer(LanguageServer):
             retrieve_spec_md() or ""
         )
         self._container_path: str = container_mount_path or ""
+        self._container_macro_mount_path: str = container_macro_mount_path or ""
 
     @property
     def is_vscode_connected(self) -> bool:
@@ -152,6 +159,18 @@ class RpmSpecLanguageServer(LanguageServer):
             return os.path.join(self._container_path, os.path.basename(path))
 
         return path
+
+    def _macro_uri(self, macro_file_location: str) -> str:
+        if self._container_macro_mount_path:
+            return "file://" + os.path.join(
+                self._container_macro_mount_path,
+                # remove leading slashes from the location as os.path.join will
+                # otherwise return *only* macro_file_location and omit
+                # self._container_macro_mount_path
+                macro_file_location.lstrip("/"),
+            )
+        else:
+            return f"file://{macro_file_location}"
 
     def spec_from_text_document(
         self,
@@ -246,8 +265,11 @@ class RpmSpecLanguageServer(LanguageServer):
 
 def create_rpm_lang_server(
     container_mount_path: Optional[str] = None,
+    container_macro_mount_path: Optional[str] = None,
 ) -> RpmSpecLanguageServer:
-    rpm_spec_server = RpmSpecLanguageServer(container_mount_path)
+    rpm_spec_server = RpmSpecLanguageServer(
+        container_mount_path, container_macro_mount_path
+    )
 
     @rpm_spec_server.feature(INITIALIZE)
     def capture_client_info(
@@ -260,7 +282,6 @@ def create_rpm_lang_server(
         server: RpmSpecLanguageServer,
         param: Union[DidOpenTextDocumentParams, DidSaveTextDocumentParams],
     ) -> None:
-        LOGGER.debug("open or save event")
         if not (spec := server.spec_from_text_document(param.text_document)):
             return None
 
@@ -390,6 +411,7 @@ def create_rpm_lang_server(
                 param.text_document
             )
         ):
+            LOGGER.debug("spec sections of %s are unavailable", param.text_document.uri)
             return None
 
         macro_under_cursor = server.get_macro_under_cursor(
@@ -397,6 +419,7 @@ def create_rpm_lang_server(
         )
 
         if not macro_under_cursor:
+            LOGGER.debug("did not find macro under cursor")
             return None
 
         macro_name = (
@@ -410,45 +433,16 @@ def create_rpm_lang_server(
             else macro_under_cursor.level
         )
 
-        def find_macro_define_in_spec(file_contents: str) -> list[re.Match[str]]:
-            """Searches for the definition of the macro ``macro_under_cursor``
-            as it would appear in a spec file, i.e.: ``%global macro`` or
-            ``%define macro``.
-
-            """
-            regex = re.compile(
-                rf"^([\t \f]*)(%(?:global|define))([\t \f]+)({macro_name})",
-                re.MULTILINE,
-            )
-            return list(regex.finditer(file_contents))
-
-        def find_macro_in_macro_file(file_contents: str) -> list[re.Match[str]]:
-            """Searches for the definition of the macro ``macro_under_cursor``
-            as it would appear in a rpm macros file, i.e.: ``%macro …``.
-
-            """
-            regex = re.compile(
-                rf"^([\t \f]*)(%{macro_name})([\t \f]+)(\S+)", re.MULTILINE
-            )
-            return list(regex.finditer(file_contents))
-
-        def find_preamble_definition_in_spec(
-            file_contents: str,
-        ) -> list[re.Match[str]]:
-            regex = re.compile(
-                rf"^([\t \f]*)({macro_name}):([\t \f]+)(\S*)",
-                re.MULTILINE | re.IGNORECASE,
-            )
-            if (m := regex.search(file_contents)) is None:
-                return []
-            return [m]
+        LOGGER.debug("Got macro %s, level: %s", macro_name, macro_level)
 
         define_matches, file_uri = [], None
 
         # macro is defined in the spec file
         if macro_level == MacroLevel.GLOBAL:
             if not (
-                define_matches := find_macro_define_in_spec(str(spec_sections.spec))
+                define_matches := find_macro_define_in_spec(
+                    macro_name, str(spec_sections.spec)
+                )
             ):
                 return None
 
@@ -456,12 +450,20 @@ def create_rpm_lang_server(
 
         # macro is something like %version, %release, etc.
         elif macro_level == MacroLevel.SPEC:
+            LOGGER.debug("looking for macro %s in the spec", macro_name)
+            # try the preamble values
             if not (
                 define_matches := find_preamble_definition_in_spec(
-                    str(spec_sections.spec)
+                    macro_name, str(spec_sections.spec)
                 )
             ):
-                return None
+                # or maybe it's defined via %global or %define?
+                if not (
+                    define_matches := find_macro_define_in_spec(
+                        macro_name, str(spec_sections.spec)
+                    )
+                ):
+                    return None
             file_uri = param.text_document.uri
 
         # the macro comes from a macro file
@@ -476,18 +478,22 @@ def create_rpm_lang_server(
         # builtin macros file of rpm (_should_ be in %_rpmconfigdir/macros) so
         # we retry the search in that file.
         elif macro_level == MacroLevel.MACROFILES:
+            LOGGER.debug("looking for %s in macro files", macro_name)
             MACROS_DIR = rpm.expandMacro("%_rpmmacrodir")
+            LOGGER.debug("%%_rpmmacrodir: %s", MACROS_DIR)
             ts = rpm.TransactionSet()
 
             # search in packages
             for pkg in ts.dbMatch("provides", f"rpm_macro({macro_name})"):
+                LOGGER.debug("Package %s provides rpm_macro(%s)", pkg.name, macro_name)
                 for f in rpm.files(pkg):
                     if f.name.startswith(MACROS_DIR):
                         with open(f.name) as macro_file_f:
-                            if define_matches := find_macro_in_macro_file(
-                                macro_file_f.read(-1)
+                            LOGGER.debug("Looking for macro in %s", f.name)
+                            if define_matches := find_macro_matches_in_macro_file(
+                                macro_name, macro_file_f.read(-1)
                             ):
-                                file_uri = f"file://{f.name}"
+                                file_uri = server._macro_uri(f.name)
                                 break
 
             # we didn't find a match
@@ -496,10 +502,10 @@ def create_rpm_lang_server(
             if not define_matches:
                 fname = rpm.expandMacro("%_rpmconfigdir") + "/macros"
                 with open(fname) as macro_file_f:
-                    if define_matches := find_macro_in_macro_file(
-                        macro_file_f.read(-1)
+                    if define_matches := find_macro_matches_in_macro_file(
+                        macro_name, macro_file_f.read(-1)
                     ):
-                        file_uri = f"file://{fname}"
+                        file_uri = server._macro_uri(fname)
 
         if define_matches and file_uri:
             return [
