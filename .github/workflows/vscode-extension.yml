@@ -39,7 +39,7 @@ jobs:
       - run: npm install
       - run: npm run package
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: ${{ matrix.node-version == '18.x' }}
         with:
           name: rpm-spec-language-server.vsix
