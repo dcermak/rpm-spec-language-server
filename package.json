@@ -37,7 +37,7 @@
     "package": "vsce package"
   },
   "devDependencies": {
-    "@types/node": "^24.10",
+    "@types/node": "^25.0",
     "@types/vscode": ">=1.75",
     "@vscode/vsce": "^3",
     "typescript": "^5.9"
