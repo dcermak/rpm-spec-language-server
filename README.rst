@@ -148,29 +148,9 @@ Add to your `~/.config/vis/visrc.lua` this code:
 Neovim with built-in LSP client
 -------------------------------
 
-.. code-block:: lua
-
-  local lspconfig = require("lspconfig")
-  local util = require("lspconfig.util")
-  local configs = require("lspconfig.configs")
-  configs.rpmspec = {
-      default_config = {
-        cmd = { 'python3', '-mrpm_spec_language_server', '--stdio' },
-        filetypes = { 'spec' },
-        single_file_support = true,
-        root_dir = util.find_git_ancestor,
-        settings = {},
-      },
-      docs = {
-        description = [[
-    https://github.com/dcermak/rpm-spec-language-server
-
-    Language server protocol (LSP) support for RPM Spec files.
-    ]],
-      },
-  }
-
-  lspconfig["rpmspec"].setup({})
+Copy the file `clients/neovim/rpmspec.lua`_ to your ``/lsp/``
+directory (most likely ``$XDG_CONFIG_HOME/nvim/lsp/``) and modify
+according to your installation.
 
 Neovim with `coc.nvim`_ plugin
 ------------------------------
@@ -235,3 +215,6 @@ Then start the language server in tcp mode and invoke eglot via ``M-x eglot``.
 .. _Anti 996 License: https://github.com/neoclide/coc.nvim/blob/master/LICENSE.md
 
 .. _lsp-mode.el: https://emacs-lsp.github.io/lsp-mode/
+
+.. _`clients/neovim/rpmspec.lua`:
+   clients/neovim/rpmspec.lua
