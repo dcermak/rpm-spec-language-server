@@ -141,29 +141,9 @@ the language server in tcp mode.</p>
 </section>
 <section id="neovim-with-built-in-lsp-client">
 <h2>Neovim with built-in LSP client<a class="headerlink" href="#neovim-with-built-in-lsp-client" title="Link to this heading">¶</a></h2>
-<div class="highlight-lua notranslate"><div class="highlight"><pre><span></span><span class="kd">local</span><span class="w"> </span><span class="nv">lspconfig</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;lspconfig&quot;</span><span class="p">)</span>
-<span class="kd">local</span><span class="w"> </span><span class="nv">util</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;lspconfig.util&quot;</span><span class="p">)</span>
-<span class="kd">local</span><span class="w"> </span><span class="nv">configs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">require</span><span class="p">(</span><span class="s2">&quot;lspconfig.configs&quot;</span><span class="p">)</span>
-<span class="nv">configs</span><span class="p">.</span><span class="py">rpmspec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nv">default_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nv">cmd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s1">&#39;python3&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-mrpm_spec_language_server&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;--stdio&#39;</span><span class="w"> </span><span class="p">},</span>
-<span class="w">      </span><span class="nv">filetypes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s1">&#39;spec&#39;</span><span class="w"> </span><span class="p">},</span>
-<span class="w">      </span><span class="nv">single_file_support</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">      </span><span class="nv">root_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">util</span><span class="p">.</span><span class="py">find_git_ancestor</span><span class="p">,</span>
-<span class="w">      </span><span class="nv">settings</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nv">docs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="nv">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">[[</span>
-<span class="s">  https://github.com/dcermak/rpm-spec-language-server</span>
-
-<span class="s">  Language server protocol (LSP) support for RPM Spec files.</span>
-<span class="s">  ]]</span><span class="p">,</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="p">}</span>
-
-<span class="nv">lspconfig</span><span class="p">[</span><span class="s2">&quot;rpmspec&quot;</span><span class="p">].</span><span class="nf">setup</span><span class="p">({})</span>
-</pre></div>
-</div>
+<p>Copy the file <a class="reference external" href="clients/neovim/rpmspec.lua">clients/neovim/rpmspec.lua</a> to your <code class="docutils literal notranslate"><span class="pre">/lsp/</span></code>
+directory (most likely <code class="docutils literal notranslate"><span class="pre">$XDG_CONFIG_HOME/nvim/lsp/</span></code>) and modify
+according to your installation.</p>
 </section>
 <section id="neovim-with-coc-nvim-plugin">
 <h2>Neovim with <a class="reference external" href="https://github.com/neoclide/coc.nvim">coc.nvim</a> plugin<a class="headerlink" href="#neovim-with-coc-nvim-plugin" title="Link to this heading">¶</a></h2>
