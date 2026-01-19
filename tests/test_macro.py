@@ -24,6 +24,9 @@ from tests.data import NOTMUCH_SPEC
         ("echo 'foo' %dnl %{buildroot}", 24, None),
         ("%if %{?suse_version}", 7, "suse_version"),
         ("%if %{!?fedora}", 6, "fedora"),
+        ("", 0, None),
+        ("%", 1, None),
+        ("Name: foo", 999, None),
     ],
 )
 def test_macro_at_position(

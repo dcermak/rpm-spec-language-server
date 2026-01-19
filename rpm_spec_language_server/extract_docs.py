@@ -40,11 +40,12 @@ class AutoCompleteDoc:
     scriptlets: dict[str, str]
 
 
-def get_index_of_line(document: list[str], line_start: str) -> int:
+def get_index_of_line(document: list[str], line_start: str) -> Optional[int]:
     """Returns the index of the first line starting with ``line_start``."""
-    return [
-        (ind, line) for ind, line in enumerate(document) if line.startswith(line_start)
-    ][0][0]
+    for ind, line in enumerate(document):
+        if line.startswith(line_start):
+            return ind
+    return None
 
 
 def split_document(document: list[str]) -> _SpecDocument:
@@ -54,11 +55,17 @@ def split_document(document: list[str]) -> _SpecDocument:
     """
 
     preamble_start = get_index_of_line(document, "### Preamble tags")
-
     dependencies_start = get_index_of_line(document, "### Dependencies")
     subsections_start = get_index_of_line(document, "### Sub-sections")
-
     scriptlets_start = get_index_of_line(document, "## Build scriptlets")
+
+    if None in (
+        preamble_start,
+        dependencies_start,
+        subsections_start,
+        scriptlets_start,
+    ):
+        return _SpecDocument(preamble=[], dependencies=[], build_scriptlets=[])
 
     preamble = document[preamble_start:dependencies_start]
     dependencies = document[dependencies_start:subsections_start]

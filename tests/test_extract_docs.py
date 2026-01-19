@@ -6,6 +6,12 @@ from pathlib import Path
 
 import pytest
 import rpm
+from specfile.constants import (
+    SCRIPT_SECTIONS,
+    SECTION_NAMES,
+    SIMPLE_SCRIPT_SECTIONS,
+    TAG_NAMES,
+)
 from rpm_spec_language_server.extract_docs import (
     create_autocompletion_documentation_from_spec_md,
     fetch_upstream_spec_md,
@@ -517,6 +523,19 @@ def test_scriptlets_supplemented_via_specfile_constants() -> None:
 def test_section_headings_not_in_scriptlets() -> None:
     assert "Basic scriptlets" not in _auto_completion_data.scriptlets
     assert "Basic" not in _auto_completion_data.scriptlets
+
+
+def test_create_autocompletion_documentation_missing_sections() -> None:
+    doc = create_autocompletion_documentation_from_spec_md("")
+
+    assert isinstance(doc.tags, dict)
+    assert isinstance(doc.scriptlets, dict)
+
+    for tag in TAG_NAMES:
+        assert tag in doc.tags
+
+    for scriptlet in SECTION_NAMES | SIMPLE_SCRIPT_SECTIONS | SCRIPT_SECTIONS:
+        assert f"%{scriptlet}" in doc.scriptlets
 
     assert "Runtime scriptlets" not in _auto_completion_data.scriptlets
     assert "Runtime" not in _auto_completion_data.scriptlets
