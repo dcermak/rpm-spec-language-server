@@ -191,7 +191,7 @@ def create_autocompletion_documentation_from_spec_md(spec_md: str) -> AutoComple
     return AutoCompleteDoc(tags=tags, scriptlets=build_scriptlets)
 
 
-def fetch_upstream_spec_md() -> Optional[str]:
+def fetch_upstream_spec_md(timeout: float = 5.0) -> Optional[str]:
     """Fetches :file:`spec.md` from the upstream `github repo
     <https://github.com/rpm-software-management/rpm>`_ and returns its
     contents. If the fetching fails, then `None` is returned.
@@ -201,7 +201,8 @@ def fetch_upstream_spec_md() -> Optional[str]:
 
     try:
         resp = requests.get(
-            "https://raw.githubusercontent.com/rpm-software-management/rpm/master/docs/manual/spec.md"
+            "https://raw.githubusercontent.com/rpm-software-management/rpm/master/docs/manual/spec.md",
+            timeout=timeout,
         )
         return resp.text
     except requests.exceptions.RequestException:
@@ -210,7 +211,9 @@ def fetch_upstream_spec_md() -> Optional[str]:
     return None
 
 
-def retrieve_spec_md() -> Optional[str]:
+def retrieve_spec_md(
+    *, allow_network: bool = True, fetch_timeout: float = 5.0
+) -> Optional[str]:
     """Retrieve :file:`spec.md` from either :file:`XDG_CACHE_HOME/rpm/spec.md`,
     the ``rpm`` package on the system or from the upstream git repository.
 
@@ -232,7 +235,10 @@ def retrieve_spec_md() -> Optional[str]:
                 if (spec_md := Path(spec_md_location)).exists():
                     return spec_md.read_text()
 
-    if not (spec_md_contents := fetch_upstream_spec_md()):
+    if not allow_network:
+        return None
+
+    if not (spec_md_contents := fetch_upstream_spec_md(timeout=fetch_timeout)):
         return None
 
     rpm_cache_dir.mkdir(parents=True, exist_ok=True)
