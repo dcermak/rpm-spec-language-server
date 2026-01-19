@@ -150,7 +150,7 @@ class RpmSpecLanguageServer(LanguageServer):
             return None
 
         if self._container_path:
-            return os.path.join(self._container_path, os.path.basename(path))
+            return os.path.join(self._container_path, path.lstrip("/"))
 
         return path
 
@@ -232,6 +232,12 @@ class RpmSpecLanguageServer(LanguageServer):
         assert spec
 
         with spec.lines() as lines:
+            if position.line < 0 or position.line >= len(lines):
+                return None
+
+            if position.character < 0:
+                return None
+
             symbol = get_macro_string_at_position(
                 lines[position.line], position.character
             )

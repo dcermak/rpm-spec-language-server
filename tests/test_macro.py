@@ -8,7 +8,9 @@ from rpm_spec_language_server.macros import (
     get_macro_string_at_position,
 )
 from rpm_spec_language_server.server import create_rpm_lang_server
+from rpm_spec_language_server.util import parse_macros
 from specfile.macros import Macro, MacroLevel
+from specfile.specfile import Specfile
 
 from tests.data import NOTMUCH_SPEC
 
@@ -56,3 +58,16 @@ def test_get_macro_under_cursor_with_special_path(tmp_path: Path):
         and macro.name == "libversion"
         and macro.body == "5"
     )
+
+
+def test_get_macro_under_cursor_out_of_range() -> None:
+    server = create_rpm_lang_server()
+    spec = Specfile(content=NOTMUCH_SPEC, sourcedir=".", macros=parse_macros())
+
+    macro = server.get_macro_under_cursor(
+        spec=spec,
+        position=Position(line=9999, character=0),
+        macros_dump=server.macros,
+    )
+
+    assert macro is None
