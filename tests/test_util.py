@@ -66,3 +66,17 @@ def test_spec_from_text_with_special_path(tmp_path: Path) -> None:
 
     assert spec
     assert spec.name == "notmuch"
+
+
+def test_container_mount_path_uses_full_path() -> None:
+    server = create_rpm_lang_server(container_mount_path="/mnt")
+    uri = "file:///home/me/specs/hello_world.spec"
+
+    assert server._spec_path_from_uri(uri) == "/mnt/home/me/specs/hello_world.spec"
+
+
+def test_container_mount_path_root_accepts_full_path() -> None:
+    server = create_rpm_lang_server(container_mount_path="/")
+    uri = "file:///home/me/specs/hello_world.spec"
+
+    assert server._spec_path_from_uri(uri) == "/home/me/specs/hello_world.spec"

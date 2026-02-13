@@ -150,7 +150,20 @@ class RpmSpecLanguageServer(LanguageServer):
             return None
 
         if self._container_path:
-            return os.path.join(self._container_path, os.path.basename(path))
+            # Normalize paths to prevent path traversal attacks
+            container = os.path.normpath(self._container_path)
+            full_path = os.path.normpath(os.path.join(container, path.lstrip("/")))
+
+            # Ensure the resolved path stays within the container directory.
+            # commonpath also handles the root mount case (container == "/").
+            try:
+                if os.path.commonpath([full_path, container]) != container:
+                    return None
+            except ValueError:
+                # Paths are on different drives (Windows)
+                return None
+
+            return full_path
 
         return path
 
