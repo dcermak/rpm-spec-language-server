@@ -6,6 +6,12 @@ def get_macro_string_at_position(line: str, character: int) -> Optional[str]:
     ``line`` and return it.
 
     """
+    if not line:
+        return None
+
+    if character < 0 or character >= len(line):
+        return None
+
     start_of_macro = 0
     end_of_macro = len(line)
     for i in range(character):
@@ -19,8 +25,13 @@ def get_macro_string_at_position(line: str, character: int) -> Optional[str]:
 
     # not a macro, just a word
     # or a macro prefixed with another % and thus being commented out
+    if start_of_macro >= len(line):
+        return None
+
     if line[start_of_macro] != "%" or (
-        line[start_of_macro] == "%" and line[start_of_macro + 1] == "%"
+        line[start_of_macro] == "%"
+        and (start_of_macro + 1) < len(line)
+        and line[start_of_macro + 1] == "%"
     ):
         return None
 
@@ -29,8 +40,13 @@ def get_macro_string_at_position(line: str, character: int) -> Optional[str]:
         return None
 
     start_of_macro += 1
+    if start_of_macro >= len(line):
+        return None
+
     if line[start_of_macro] == "{":
         start_of_macro += 1
+        if start_of_macro >= len(line):
+            return None
 
     for i in range(start_of_macro, len(line)):
         if line[i] not in ("?", "!"):

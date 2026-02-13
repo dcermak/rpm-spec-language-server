@@ -55,6 +55,7 @@ from rpm_spec_language_server.macros import (
     get_macro_string_at_position,
 )
 from rpm_spec_language_server.util import (
+    parse_macros,
     position_from_match,
     spec_from_text,
 )
@@ -149,7 +150,20 @@ class RpmSpecLanguageServer(LanguageServer):
             return None
 
         if self._container_path:
-            return os.path.join(self._container_path, os.path.basename(path))
+            # Normalize paths to prevent path traversal attacks
+            container = os.path.normpath(self._container_path)
+            full_path = os.path.normpath(os.path.join(container, path.lstrip("/")))
+
+            # Ensure the resolved path stays within the container directory.
+            # commonpath also handles the root mount case (container == "/").
+            try:
+                if os.path.commonpath([full_path, container]) != container:
+                    return None
+            except ValueError:
+                # Paths are on different drives (Windows)
+                return None
+
+            return full_path
 
         return path
 
@@ -173,7 +187,7 @@ class RpmSpecLanguageServer(LanguageServer):
 
         if not (text := getattr(text_document, "text", None)):
             try:
-                return Specfile(path)
+                return Specfile(path, macros=parse_macros())
             except RPMException as rpm_exc:
                 LOGGER.debug("Failed to parse spec %s, got %s", path, rpm_exc)
                 return None
@@ -223,7 +237,7 @@ class RpmSpecLanguageServer(LanguageServer):
             if not path:
                 return None
             try:
-                spec = Specfile(path)
+                spec = Specfile(path, macros=parse_macros())
             except RPMException as rpm_exc:
                 LOGGER.debug("Failed to parse spec %s, got %s", path, rpm_exc)
                 return None
@@ -231,6 +245,12 @@ class RpmSpecLanguageServer(LanguageServer):
         assert spec
 
         with spec.lines() as lines:
+            if position.line < 0 or position.line >= len(lines):
+                return None
+
+            if position.character < 0:
+                return None
+
             symbol = get_macro_string_at_position(
                 lines[position.line], position.character
             )
@@ -446,7 +466,7 @@ def create_rpm_lang_server(
         define_matches, file_uri = [], None
 
         # macro is defined in the spec file
-        if macro_level == MacroLevel.GLOBAL:
+        if macro_level in (MacroLevel.GLOBAL, MacroLevel.OLDSPEC):
             if not (
                 define_matches := find_macro_define_in_spec(str(spec_sections.spec))
             ):
@@ -456,13 +476,14 @@ def create_rpm_lang_server(
 
         # macro is something like %version, %release, etc.
         elif macro_level == MacroLevel.SPEC:
-            if not (
-                define_matches := find_preamble_definition_in_spec(
-                    str(spec_sections.spec)
-                )
+            if define_matches := find_macro_define_in_spec(str(spec_sections.spec)):
+                file_uri = param.text_document.uri
+            elif define_matches := find_preamble_definition_in_spec(
+                str(spec_sections.spec)
             ):
+                file_uri = param.text_document.uri
+            else:
                 return None
-            file_uri = param.text_document.uri
 
         # the macro comes from a macro file
         #
@@ -556,7 +577,7 @@ def create_rpm_lang_server(
                     path = server._spec_path_from_uri(params.text_document.uri)
                     if not path:
                         return None
-                    spec = Specfile(path)
+                    spec = Specfile(path, macros=parse_macros())
                     expanded = spec.expand(macro)
 
                 LOGGER.debug("Expanded '%s' to '%s'", macro, expanded)

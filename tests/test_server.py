@@ -1,7 +1,7 @@
 import re
 from os import getenv
 from time import sleep
-from typing import Callable, Optional, cast
+from typing import Callable, Optional
 
 import pytest
 from lsprotocol.types import (
@@ -32,7 +32,6 @@ from lsprotocol.types import (
     VersionedTextDocumentIdentifier,
 )
 from pygls.lsp.server import LanguageServer
-from rpm_spec_language_server.server import RpmSpecLanguageServer
 
 from .conftest import CLIENT_SERVER_T
 
@@ -122,7 +121,9 @@ def test_in_memory_spec_sections(client_server: CLIENT_SERVER_T) -> None:
 
     client.protocol.notify(
         TEXT_DOCUMENT_DID_CLOSE,
-        DidCloseTextDocumentParams(text_document=TextDocumentIdentifier(uri=uri)),
+        DidCloseTextDocumentParams(
+            text_document=TextDocumentIdentifier(uri=f"file://{path}")
+        ),
     )
     sleep(_SLEEP_TIMEOUT)
 
@@ -372,7 +373,7 @@ def test_autocomplete(
 )
 def test_vscode_detection(client_server: CLIENT_SERVER_T, is_vscode: bool) -> None:
     _, server = client_server
-    assert cast(RpmSpecLanguageServer, server).is_vscode_connected == is_vscode
+    assert server.is_vscode_connected == is_vscode
 
 
 @pytest.mark.parametrize(

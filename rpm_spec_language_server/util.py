@@ -9,6 +9,15 @@ from specfile.specfile import Specfile
 
 from rpm_spec_language_server.logging import LOGGER
 
+_DEFAULT_PARSE_MACROS = [
+    ("bcond_without", "%{!?with_%{1}: %global with_%{1} 0}"),
+    ("bcond_with", "%{!?with_%{1}: %global with_%{1} 1}"),
+]
+
+
+def parse_macros() -> list[tuple[str, str]]:
+    return list(_DEFAULT_PARSE_MACROS)
+
 
 def position_from_match(re_match: Match[str]) -> Position:
     """Calculate the position of a regex search/match in a string."""
@@ -47,7 +56,7 @@ def spec_from_text(
             tmp_spec.write(spec_contents)
 
         try:
-            return Specfile(path)
+            return Specfile(path, macros=parse_macros())
         except RPMException as rpm_exc:
             LOGGER.debug("Failed to parse spec, got %s", rpm_exc)
             return None

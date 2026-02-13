@@ -2,6 +2,7 @@ from pathlib import Path
 
 from lsprotocol.types import DocumentSymbol, Position, Range, SymbolKind
 from rpm_spec_language_server.document_symbols import SpecSections
+from rpm_spec_language_server.util import parse_macros
 from specfile.specfile import Specfile
 
 from .data import NOTMUCH_SPEC
@@ -11,7 +12,9 @@ def test_simple_spec_document_symbols(tmp_path: Path) -> None:
     with open((spec_path := tmp_path / "notmuch.spec"), "w") as spec:
         spec.write(NOTMUCH_SPEC)
 
-    doc_symbols = SpecSections.parse(Specfile(str(spec_path))).to_document_symbols()
+    doc_symbols = SpecSections.parse(
+        Specfile(str(spec_path), macros=parse_macros())
+    ).to_document_symbols()
     assert doc_symbols[0] == DocumentSymbol(
         name="package",
         kind=SymbolKind.Namespace,
