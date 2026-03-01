@@ -1,7 +1,7 @@
-import os.path
+import os
 import re
 from importlib import metadata
-from typing import Optional, Union, overload
+from typing import Any, Optional, Union, overload
 from urllib.parse import unquote, urlparse
 
 import rpm
@@ -17,6 +17,7 @@ from lsprotocol.types import (
     TEXT_DOCUMENT_HOVER,
     ClientInfo,
     CompletionItem,
+    CompletionItemTag,
     CompletionList,
     CompletionOptions,
     CompletionParams,
@@ -45,6 +46,7 @@ from specfile.exceptions import RPMException
 from specfile.macros import Macro, MacroLevel, Macros
 from specfile.specfile import Specfile
 
+from rpm_spec_language_server.deprecated_macros import DEPRECATED_MACRO_PROFILES
 from rpm_spec_language_server.document_symbols import SpecSections
 from rpm_spec_language_server.extract_docs import (
     create_autocompletion_documentation_from_spec_md,
@@ -61,6 +63,9 @@ from rpm_spec_language_server.util import (
 
 
 class RpmSpecLanguageServer(LanguageServer):
+    _DEPRECATED_MACRO_PROFILE_ENV = "RPM_SPEC_LSP_MACRO_PROFILE"
+    _DEFAULT_DEPRECATED_MACRO_PROFILE = "fedora"
+    _DEPRECATED_MACRO_PROFILES = DEPRECATED_MACRO_PROFILES
     _CONDITION_KEYWORDS = [
         # from https://github.com/rpm-software-management/rpm/blob/7d3d9041af2d75c4709cf7a721daf5d1787cce14/build/rpmbuild_internal.h#L58
         "%endif",
@@ -88,6 +93,63 @@ class RpmSpecLanguageServer(LanguageServer):
             retrieve_spec_md() or ""
         )
         self._container_path: str = container_mount_path or ""
+        self._deprecated_macro_profiles = {
+            profile: set(macros)
+            for profile, macros in self._DEPRECATED_MACRO_PROFILES.items()
+        }
+        env_profile = os.getenv(
+            self._DEPRECATED_MACRO_PROFILE_ENV, self._DEFAULT_DEPRECATED_MACRO_PROFILE
+        )
+        self._deprecated_macro_profile = self._resolve_macro_profile(env_profile)
+
+    def _resolve_macro_profile(self, profile: str) -> str:
+        normalized = profile.strip().lower()
+        if normalized in self._deprecated_macro_profiles:
+            return normalized
+
+        if self._DEFAULT_DEPRECATED_MACRO_PROFILE in self._deprecated_macro_profiles:
+            LOGGER.warning(
+                "Unknown macro deprecation profile '%s', using '%s'",
+                normalized,
+                self._DEFAULT_DEPRECATED_MACRO_PROFILE,
+            )
+            return self._DEFAULT_DEPRECATED_MACRO_PROFILE
+
+        if self._deprecated_macro_profiles:
+            fallback = sorted(self._deprecated_macro_profiles.keys())[0]
+            LOGGER.warning(
+                "Unknown macro deprecation profile '%s', using '%s'",
+                normalized,
+                fallback,
+            )
+            return fallback
+
+        LOGGER.warning(
+            "No macro deprecation profiles loaded, using '%s'",
+            self._DEFAULT_DEPRECATED_MACRO_PROFILE,
+        )
+        return self._DEFAULT_DEPRECATED_MACRO_PROFILE
+
+    @staticmethod
+    def _macro_profile_from_initialize_options(
+        initialization_options: Optional[Any],
+    ) -> Optional[str]:
+        if not isinstance(initialization_options, dict):
+            return None
+
+        option_candidates: list[dict[str, Any]] = [initialization_options]
+        for key in ("rpmSpecLanguageServer", "rpm_spec_language_server", "rpmSpec"):
+            nested = initialization_options.get(key)
+            if isinstance(nested, dict):
+                option_candidates.append(nested)
+
+        for options in option_candidates:
+            for key in ("macroProfile", "macro_profile"):
+                profile = options.get(key)
+                if isinstance(profile, str) and profile.strip():
+                    return profile
+
+        return None
 
     @property
     def is_vscode_connected(self) -> bool:
@@ -108,6 +170,32 @@ class RpmSpecLanguageServer(LanguageServer):
         if not self.is_vscode_connected:
             with_percent = True
 
+        def is_deprecated_macro(macro_name: str) -> bool:
+            if macro_name.startswith("__"):
+                return True
+
+            return (
+                macro_name
+                in self._deprecated_macro_profiles[self._deprecated_macro_profile]
+            )
+
+        def macro_completion_item(macro: Macro) -> CompletionItem:
+            label = f"%{macro.name}" if with_percent else macro.name
+            if is_deprecated_macro(macro.name):
+                detail = (
+                    f"Deprecated for {self._deprecated_macro_profile} packaging"
+                    if not macro.name.startswith("__")
+                    else "Internal RPM implementation macro"
+                )
+                return CompletionItem(
+                    label=label,
+                    detail=detail,
+                    deprecated=True,
+                    tags=[CompletionItemTag.Deprecated],
+                    sort_text=f"zzz_{label}",
+                )
+            return CompletionItem(label=label)
+
         return (
             [
                 CompletionItem(
@@ -120,7 +208,7 @@ class RpmSpecLanguageServer(LanguageServer):
                 for keyword in self._CONDITION_KEYWORDS
             ]
             + [
-                CompletionItem(label=f"%{macro.name}" if with_percent else macro.name)
+                macro_completion_item(macro)
                 for macro in self.macros
             ]
         )
@@ -255,6 +343,13 @@ def create_rpm_lang_server(
     ) -> None:
         """Capture client info for VS Code"""
         server._client_info = params.client_info
+        profile_from_client = server._macro_profile_from_initialize_options(
+            params.initialization_options
+        )
+        if profile_from_client is not None:
+            server._deprecated_macro_profile = server._resolve_macro_profile(
+                profile_from_client
+            )
 
     def did_open_or_save(
         server: RpmSpecLanguageServer,
