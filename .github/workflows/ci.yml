@@ -32,7 +32,7 @@ jobs:
     name: Run the integration tests
     runs-on: "ubuntu-latest"
     container:
-      image: registry.opensuse.org/opensuse/tumbleweed
+      image: registry.fedoraproject.org/fedora:latest
 
     steps:
       - uses: actions/checkout@v6
@@ -43,13 +43,11 @@ jobs:
           key: poetry-${{ hashFiles('poetry.lock') }}
 
       - run: |
-          sed -i 's|rpm\.install\.excludedocs = yes|rpm\.install\.excludedocs = no|' /etc/zypp/zypp.conf
-          zypper -n ref
           # reinstall rpm to get spec.md
-          zypper -n in -f rpm
+          dnf install -y --setopt=tsflags= rpm
           # python3 required for sqlite3 module
           # git required for codecov
-          zypper -n in python3-pipx python3-rpm python3 git
+          dnf install -y pipx python3-rpm python3 git
 
       - run: pipx install poetry
         env:
@@ -100,16 +98,14 @@ jobs:
     runs-on: "ubuntu-latest"
     needs: build
     container:
-      image: registry.opensuse.org/opensuse/tumbleweed
+      image: registry.fedoraproject.org/fedora:latest
 
     steps:
       - run: |
-          sed -i 's|rpm\.install\.excludedocs = yes|rpm\.install\.excludedocs = no|' /etc/zypp/zypp.conf
-          zypper -n ref
           # reinstall rpm to get spec.md
-          zypper -n in -f rpm
+          dnf install -y --setopt=tsflags= rpm
           # python3 required for sqlite3 module
-          zypper -n in python3-pip python3-rpm python3
+          dnf install -y python3-pip python3-rpm python3
 
       - uses: actions/download-artifact@v7
         with:
