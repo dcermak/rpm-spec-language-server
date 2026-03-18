@@ -1,0 +1,15 @@
+DEPRECATED_MACROS: set[str] = {
+    "install_info",
+    "uninstall_info",
+    "update_menus",
+    "clean_menus",
+    "_x11dir",
+    "_x11bindir",
+    "_x11libdir",
+    "_x11includedir",
+    "_x11mandir",
+    "_x11datadir",
+    "_initir",
+    "_initrddir",
+    "_menudir",
+}
