@@ -1,4 +1,5 @@
-import asyncio
+import concurrent.futures
+import functools
 import os
 import threading
 from typing import Generator
@@ -24,6 +25,32 @@ from rpm_spec_language_server.server import (  # noqa: E402
     create_rpm_lang_server,
 )
 
+RETRIES = 3
+
+
+def retry_stalled_init_fix_hack():
+    # Works around a pygls v2 race where the client's writer isn't bound by
+    # the time send_request(INITIALIZE) fires from the main thread.
+    # Mirrors pygls's own tests/_init_server_stall_fix_hack.py.
+    if "DISABLE_TIMEOUT" in os.environ:
+        return lambda f: f
+
+    def decorator(func):
+        @functools.wraps(func)
+        def newfn(*args, **kwargs):
+            attempt = 0
+            while attempt < RETRIES:
+                try:
+                    return func(*args, **kwargs)
+                except concurrent.futures.TimeoutError:
+                    attempt += 1
+                    print(f"Retrying timeouted test server init {attempt} of {RETRIES}")
+            return func(*args, **kwargs)
+
+        return newfn
+
+    return decorator
+
 
 class ClientServer:
     # shamelessly stolen from
@@ -46,7 +73,7 @@ class ClientServer:
         self.server_thread.daemon = True
 
         # Setup client
-        self.client = LanguageServer("client", "v1", asyncio.new_event_loop())
+        self.client = LanguageServer("client", "v1")
         self.client_thread = threading.Thread(
             name="Client Thread",
             target=self.client.start_io,
@@ -70,13 +97,9 @@ class ClientServer:
         self.client.protocol.notify(EXIT)
         self.server_thread.join()
         self.client._stop_event.set()
-        try:
-            self.client.loop._signal_handlers.clear()  # HACK ?
-        except AttributeError:
-            pass
         self.client_thread.join()
 
-    # @retry_stalled_init_fix_hack()
+    @retry_stalled_init_fix_hack()
     def initialize(self) -> None:
         timeout = None if "DISABLE_TIMEOUT" in os.environ else 1
         response = self.client.protocol.send_request(

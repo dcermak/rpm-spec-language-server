@@ -107,7 +107,7 @@ jobs:
           # python3 required for sqlite3 module
           dnf install -y python3-pip python3-rpm python3
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: wheel
           path: dist
@@ -154,7 +154,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: build
           path: ./build
@@ -192,7 +192,7 @@ jobs:
 
       # grab the previously built wheel for checking with twine
       # FIXME: implement twine check
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: wheel
           path: dist
