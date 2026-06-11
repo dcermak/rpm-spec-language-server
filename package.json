@@ -43,6 +43,6 @@
     "typescript": "^6.0"
   },
   "dependencies": {
-    "vscode-languageclient": "^9"
+    "vscode-languageclient": "^10"
   }
 }
