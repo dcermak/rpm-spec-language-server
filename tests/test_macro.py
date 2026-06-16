@@ -9,6 +9,7 @@ from rpm_spec_language_server.macros import (
 )
 from rpm_spec_language_server.server import create_rpm_lang_server
 from specfile.macros import Macro, MacroLevel
+from specfile.specfile import Specfile
 
 from tests.data import NOTMUCH_SPEC
 
@@ -24,6 +25,12 @@ from tests.data import NOTMUCH_SPEC
         ("echo 'foo' %dnl %{buildroot}", 24, None),
         ("%if %{?suse_version}", 7, "suse_version"),
         ("%if %{!?fedora}", 6, "fedora"),
+        ("%{name}", 7, "name"),
+        ("%{name}", -1, None),
+        ("%{name}", 8, None),
+        ("", 0, None),
+        ("%", 1, None),
+        ("Name: foo", 999, None),
     ],
 )
 def test_macro_at_position(
@@ -53,3 +60,53 @@ def test_get_macro_under_cursor_with_special_path(tmp_path: Path):
         and macro.name == "libversion"
         and macro.body == "5"
     )
+
+
+def test_get_macro_under_cursor_out_of_range() -> None:
+    server = create_rpm_lang_server()
+    spec = Specfile(content=NOTMUCH_SPEC, sourcedir=".")
+
+    macro = server.get_macro_under_cursor(
+        spec=spec,
+        position=Position(line=9999, character=0),
+        macros_dump=server.macros,
+    )
+
+    assert macro is None
+
+
+@pytest.mark.parametrize(
+    "line,character",
+    [
+        (-1, 0),
+        (0, -1),
+    ],
+)
+def test_get_macro_under_cursor_rejects_negative_positions(
+    line: int, character: int
+) -> None:
+    server = create_rpm_lang_server()
+    spec = Specfile(
+        content=(
+            "Name: test\n"
+            "Version: 1\n"
+            "Release: 1\n"
+            "Summary: test\n"
+            "License: MIT\n\n"
+            "%description\n"
+            "%{name}\n"
+        ),
+        sourcedir=".",
+    )
+
+    position = Position(line=0, character=0)
+    object.__setattr__(position, "line", line)
+    object.__setattr__(position, "character", character)
+
+    macro = server.get_macro_under_cursor(
+        spec=spec,
+        position=position,
+        macros_dump=server.macros,
+    )
+
+    assert macro is None
