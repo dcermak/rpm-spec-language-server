@@ -12,6 +12,7 @@ from lsprotocol.types import (
     TEXT_DOCUMENT_DID_OPEN,
     TEXT_DOCUMENT_HOVER,
     CompletionContext,
+    CompletionItemTag,
     CompletionList,
     CompletionParams,
     CompletionTriggerKind,
@@ -32,7 +33,11 @@ from lsprotocol.types import (
     VersionedTextDocumentIdentifier,
 )
 from pygls.lsp.server import LanguageServer
-from rpm_spec_language_server.server import RpmSpecLanguageServer
+from rpm_spec_language_server.server import (
+    RpmSpecLanguageServer,
+    create_rpm_lang_server,
+)
+from specfile.macros import Macro, MacroLevel
 
 from .conftest import CLIENT_SERVER_T
 
@@ -275,6 +280,13 @@ def _keyword_in_completion_list(keyword: str, completion_list: CompletionList) -
     return any(item.label == keyword for item in completion_list.items)
 
 
+def _sorted_labels(items: list) -> list[str]:
+    return [
+        item.label
+        for item in sorted(items, key=lambda item: item.sort_text or item.label)
+    ]
+
+
 def _check_everything_completed(completion_list: CompletionList) -> None:
     assert all(
         # tag extracted from spec.md
@@ -373,6 +385,111 @@ def test_autocomplete(
 def test_vscode_detection(client_server: CLIENT_SERVER_T, is_vscode: bool) -> None:
     _, server = client_server
     assert cast(RpmSpecLanguageServer, server).is_vscode_connected == is_vscode
+
+
+def test_internal_macros_are_deprioritized_in_completion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("RPM_SPEC_LSP_MACRO_PROFILE", raising=False)
+    server = create_rpm_lang_server()
+    server.macros = [
+        Macro("zzz_normal", None, "1", MacroLevel.BUILTIN, True),
+        Macro("__aaa_internal", None, "1", MacroLevel.BUILTIN, True),
+    ]
+
+    items = server.macro_and_scriptlet_completions(with_percent=True)
+    by_label = {item.label: item for item in items}
+    macro_items = [
+        item for item in items if item.label in {"%zzz_normal", "%__aaa_internal"}
+    ]
+
+    normal = by_label["%zzz_normal"]
+    internal = by_label["%__aaa_internal"]
+
+    assert normal.sort_text is None
+    assert normal.tags is None
+    assert normal.deprecated is None
+
+    assert internal.sort_text == "zzz_%__aaa_internal"
+    assert internal.detail == "Internal RPM implementation macro"
+    assert internal.tags == [CompletionItemTag.Deprecated]
+    assert internal.deprecated is True
+    assert _sorted_labels(macro_items) == ["%zzz_normal", "%__aaa_internal"]
+
+
+def test_deprecated_macro_profiles_available_in_server() -> None:
+    profiles = RpmSpecLanguageServer._DEPRECATED_MACRO_PROFILES
+    assert "fedora" in profiles
+    assert "altlinux" in profiles
+    assert "install_info" in profiles["altlinux"]
+
+
+def test_unknown_macro_profile_falls_back_to_fedora(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("RPM_SPEC_LSP_MACRO_PROFILE", "unknown-profile")
+    server = create_rpm_lang_server()
+    assert server._deprecated_macro_profile == "fedora"
+
+
+def test_macro_profile_defaults_to_fedora(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("RPM_SPEC_LSP_MACRO_PROFILE", raising=False)
+    server = create_rpm_lang_server()
+    assert server._deprecated_macro_profile == "fedora"
+
+
+def test_macro_profile_can_come_from_initialize_options() -> None:
+    profile = RpmSpecLanguageServer._macro_profile_from_initialize_options(
+        {"rpmSpecLanguageServer": {"macroProfile": "opensuse"}}
+    )
+    assert profile == "opensuse"
+
+
+@pytest.mark.parametrize(
+    "profile,deprecated_macro",
+    [
+        ("altlinux", "install_info"),
+        ("fedora", "py3_build"),
+        ("opensuse", "run_ldconfig"),
+    ],
+)
+def test_profile_macros_are_deprioritized_in_completion(
+    monkeypatch: pytest.MonkeyPatch, profile: str, deprecated_macro: str
+) -> None:
+    monkeypatch.setenv("RPM_SPEC_LSP_MACRO_PROFILE", profile)
+    server = create_rpm_lang_server()
+    candidate_non_deprecated = "zzz_normal"
+    if candidate_non_deprecated in server._deprecated_macro_profiles[profile]:
+        candidate_non_deprecated = "normal_macro"
+    server.macros = [
+        Macro(candidate_non_deprecated, None, "1", MacroLevel.BUILTIN, True),
+        Macro(f"aaa_{deprecated_macro}", None, "1", MacroLevel.BUILTIN, True),
+    ]
+    server._deprecated_macro_profiles[profile].add(f"aaa_{deprecated_macro}")
+
+    items = server.macro_and_scriptlet_completions(with_percent=True)
+    by_label = {item.label: item for item in items}
+    macro_items = [
+        item
+        for item in items
+        if item.label in {f"%{candidate_non_deprecated}", f"%aaa_{deprecated_macro}"}
+    ]
+
+    normal = by_label[f"%{candidate_non_deprecated}"]
+    deprecated = by_label[f"%aaa_{deprecated_macro}"]
+
+    assert normal.sort_text is None
+    assert normal.tags is None
+    assert normal.deprecated is None
+
+    assert deprecated.sort_text == f"zzz_%aaa_{deprecated_macro}"
+    assert deprecated.detail == f"Deprecated for {profile} packaging"
+    assert deprecated.tags == [CompletionItemTag.Deprecated]
+    assert deprecated.deprecated is True
+    assert _sorted_labels(macro_items) == [
+        f"%{candidate_non_deprecated}",
+        f"%aaa_{deprecated_macro}",
+    ]
 
 
 @pytest.mark.parametrize(
