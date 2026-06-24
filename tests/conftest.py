@@ -2,7 +2,7 @@ import concurrent.futures
 import functools
 import os
 import threading
-from typing import Generator
+from typing import Generator, Tuple
 
 import pytest
 from _pytest.fixtures import SubRequest
@@ -118,11 +118,11 @@ class ClientServer:
         yield self.server
 
 
-CLIENT_SERVER_T = Generator[tuple[LanguageServer, RpmSpecLanguageServer], None, None]
+CLIENT_SERVER_T = Tuple[LanguageServer, RpmSpecLanguageServer]
 
 
 @pytest.fixture
-def client_server(request: SubRequest) -> CLIENT_SERVER_T:
+def client_server(request: SubRequest) -> Generator[CLIENT_SERVER_T, None, None]:
     if (param := getattr(request, "param", None)) and isinstance(param, str):
         cs = ClientServer(client_name=param)
     else:
